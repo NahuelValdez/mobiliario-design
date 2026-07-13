@@ -90,6 +90,9 @@
     .rec-num { font-size: 42px !important; }
     .marq { font-size: 20px !important; }
     .contact-row { flex-direction: column !important; align-items: flex-start !important; gap: 5px !important; }
+    /* Carousel de proyectos en mobile: se maneja por JS (autoplay + swipe), no por :hover */
+    .pcard:hover .pt2, .pcard:hover .pt3, .pcard:hover .pt3b, .pcard:hover .pt5 { animation: none !important; }
+    .pcard-track { transition: transform .38s cubic-bezier(.2,.7,.2,1); touch-action: pan-y; }
   }
 </style>
 <script>
@@ -146,6 +149,106 @@
   }
   document.addEventListener('DOMContentLoaded', __syncHeroScreen);
   setTimeout(__syncHeroScreen, 0);
+
+  // Carousel de proyectos en mobile: autoplay mientras la card está en pantalla,
+  // se detiene y pasa a control manual (swipe) apenas el usuario arrastra.
+  function __initMobileProjectCarousels() {
+    if (!window.matchMedia('(max-width:860px)').matches) return;
+    if (!document.querySelector('#proyectos .pcard-frame')) return;
+    var HOLD_MS = 2300;   // tiempo por imagen
+    var TRANSITION_MS = 380;
+    // Visibilidad por scroll (en vez de IntersectionObserver, más confiable en este entorno)
+    if (!window.__pcardVisibilityRegistry) {
+      window.__pcardVisibilityRegistry = [];
+      var __checkPcardVisibility = function () {
+        var vh = window.innerHeight;
+        window.__pcardVisibilityRegistry.forEach(function (entry) {
+          var r = entry.frame.getBoundingClientRect();
+          var visibleH = Math.min(r.bottom, vh) - Math.max(r.top, 0);
+          var ratio = r.height > 0 ? visibleH / r.height : 0;
+          entry.setInView(ratio >= 0.6);
+        });
+      };
+      window.addEventListener('scroll', __checkPcardVisibility, { passive: true });
+      window.addEventListener('resize', __checkPcardVisibility, { passive: true });
+      setInterval(__checkPcardVisibility, 700); // red de seguridad además del scroll
+    }
+
+    document.querySelectorAll('#proyectos .pcard-frame').forEach(function (frame) {
+      var track = frame.querySelector('.pcard-track');
+      if (!track || track.__mobileCarouselInit) return;
+      track.__mobileCarouselInit = true;
+      var slides = track.children.length;
+      if (slides < 2) return;
+      var index = 0, timer = null, manual = false, inView = false;
+      var dragging = false, axisLocked = null, startX = 0, startY = 0, baseX = 0;
+
+      function goTo(i) {
+        index = Math.max(0, Math.min(slides - 1, i));
+        track.style.transform = 'translateX(-' + (index * (100 / slides)) + '%)';
+      }
+      function scheduleNext() {
+        clearTimeout(timer);
+        if (manual || !inView) return;
+        timer = setTimeout(function () {
+          goTo((index + 1) % slides);
+          scheduleNext();
+        }, HOLD_MS);
+      }
+      function stopAutoplay() { clearTimeout(timer); }
+
+      window.__pcardVisibilityRegistry.push({
+        frame: frame,
+        setInView: function (v) {
+          if (v === inView) return;
+          inView = v;
+          if (inView) scheduleNext(); else stopAutoplay();
+        }
+      });
+
+      frame.addEventListener('touchstart', function (e) {
+        stopAutoplay();
+        dragging = true; axisLocked = null;
+        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+        baseX = -(index * (100 / slides));
+        track.style.transition = 'none';
+      }, { passive: true });
+
+      frame.addEventListener('touchmove', function (e) {
+        if (!dragging) return;
+        var dx = e.touches[0].clientX - startX;
+        var dy = e.touches[0].clientY - startY;
+        if (axisLocked === null) axisLocked = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+        if (axisLocked === 'y') return; // dejar scrollear la página verticalmente
+        e.preventDefault();
+        var pct = (dx / frame.clientWidth) * 100;
+        track.style.transform = 'translateX(' + (baseX + pct) + '%)';
+      }, { passive: false });
+
+      frame.addEventListener('touchend', function (e) {
+        if (!dragging) return;
+        dragging = false;
+        track.style.transition = TRANSITION_MS + 'ms cubic-bezier(.2,.7,.2,1)';
+        if (axisLocked === 'x') {
+          manual = true; // a partir de acá esta card se controla solo a mano
+          var dx = e.changedTouches[0].clientX - startX;
+          var threshold = frame.clientWidth * 0.15;
+          if (dx < -threshold) goTo(index + 1);
+          else if (dx > threshold) goTo(index - 1);
+          else goTo(index);
+        }
+      });
+
+      goTo(0);
+    });
+  }
+  // Reintentos defensivos: el runtime de esta plantilla puede re-renderizar
+  // las cards después de la carga inicial, así que reintentamos varias veces
+  // (la función es idempotente: cada card ya inicializada se salta sola).
+  document.addEventListener('DOMContentLoaded', function () { __initMobileProjectCarousels(); });
+  [0, 300, 800, 1500, 2500, 4000, 6000].forEach(function (ms) {
+    setTimeout(__initMobileProjectCarousels, ms);
+  });
 </script>
 </helmet>
 

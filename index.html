@@ -24,15 +24,11 @@
   @keyframes floatIso { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
   @keyframes screenfade { 0%,26%{opacity:1;} 33%,93%{opacity:0;} 100%{opacity:1;} }
 
-  /* Project cards — hover carousel */
+  /* Project cards — carousel manejado por JS (autoplay mobile / hover desktop) */
   .pcard { position: relative; transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s; }
   .pcard:hover { transform: translateY(-6px) scale(1.02); z-index: 3; }
   .pcard:hover .pcard-frame { box-shadow: 0 26px 54px -22px rgba(28,44,51,.55); }
-  .pcard-track { transform: translateX(0); }
-  .pcard:hover .pt2 { animation: ptrackIntro2 0.35s linear 1 forwards, ptrackLoop2 20.3s linear 0.35s infinite; }
-  .pcard:hover .pt3b { animation: ptrackIntro3b 0.35s linear 1 forwards, ptrackLoop3b 27.15s linear 0.35s infinite; }
-  .pcard:hover .pt5 { animation: ptrackIntro5 0.35s linear 1 forwards, ptrackLoop5 34s linear 0.35s infinite; }
-  .pcard:hover .pt3 { animation: ptrack3 7s ease-in-out infinite; }
+  .pcard-track { transform: translateX(0); transition: transform .38s cubic-bezier(.2,.7,.2,1); touch-action: pan-y; }
   @keyframes ptrackIntro2 { 0%,28.571%{transform:translateX(0);} 100%{transform:translateX(-25%);} }
   @keyframes ptrackLoop2 { 0%,32.512%{transform:translateX(-25%);} 33.744%,66.256%{transform:translateX(-50%);} 67.488%,100%{transform:translateX(-75%);} }
   @keyframes ptrackIntro3b { 0%,28.571%{transform:translateX(0);} 100%{transform:translateX(-20%);} }
@@ -83,9 +79,6 @@
     .rec-num { font-size: 42px !important; }
     .marq { font-size: 20px !important; }
     .contact-row { flex-direction: column !important; align-items: flex-start !important; gap: 5px !important; }
-    /* Carousel de proyectos en mobile: se maneja por JS (autoplay + swipe), no por :hover */
-    .pcard:hover .pt2, .pcard:hover .pt3, .pcard:hover .pt3b, .pcard:hover .pt5 { animation: none !important; }
-    .pcard-track { transition: transform .38s cubic-bezier(.2,.7,.2,1); touch-action: pan-y; }
   }
 </style>
 <script>
@@ -156,42 +149,61 @@
   document.addEventListener('DOMContentLoaded', __syncHeroScreen);
   setTimeout(__syncHeroScreen, 0);
 
-  // Carousel de proyectos en mobile: autoplay mientras la card está en pantalla,
-  // se detiene y pasa a control manual (swipe) apenas el usuario arrastra.
-  function __initMobileProjectCarousels() {
-    if (!window.matchMedia('(max-width:860px)').matches) return;
+  // Carousel de proyectos (desktop + mobile):
+  //  · Sin imágenes repetidas (se deduplica por src).
+  //  · Loop infinito real (clones a ambos lados, sin rebobinar).
+  //  · Mobile: autoplay coordinado — solo se reproduce la card con "protagonismo"
+  //    (la más visible) y el swipe pasa a control manual (queda quieta donde se deja).
+  //  · Desktop: se reproduce al pasar el cursor por encima (hover).
+  function __initProjectCarousels() {
     if (!document.querySelector('#proyectos .pcard-frame')) return;
     var HOLD_MS = 2300;   // tiempo por imagen
     var TRANSITION_MS = 380;
-    // Visibilidad por scroll (en vez de IntersectionObserver, más confiable en este entorno)
-    if (!window.__pcardVisibilityRegistry) {
-      window.__pcardVisibilityRegistry = [];
-      var __checkPcardVisibility = function () {
-        var vh = window.innerHeight;
-        window.__pcardVisibilityRegistry.forEach(function (entry) {
-          var r = entry.frame.getBoundingClientRect();
-          var visibleH = Math.min(r.bottom, vh) - Math.max(r.top, 0);
-          var ratio = r.height > 0 ? visibleH / r.height : 0;
-          entry.setInView(ratio >= 0.6);
+    var mobile = window.matchMedia('(max-width:860px)').matches;
+
+    // Coordinador global (mobile): reproduce SOLO la card más visible, pausa el resto.
+    if (!window.__pcardManager) {
+      var mgr = { entries: [] };
+      mgr.pick = function () {
+        var vh = window.innerHeight, best = null, bestScore = 0;
+        mgr.entries.forEach(function (e) {
+          if (!document.body.contains(e.frame)) { e.stop(); return; } // ignorar cards re-renderizadas (obsoletas)
+          var r = e.frame.getBoundingClientRect();
+          var vis = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0));
+          var score = r.height > 0 ? vis / r.height : 0; // fracción visible de la card
+          if (score > bestScore) { bestScore = score; best = e; }
+        });
+        mgr.entries.forEach(function (e) {
+          if (!document.body.contains(e.frame)) return;
+          if (e === best && bestScore >= 0.55) e.play(); else e.stop();
         });
       };
-      window.addEventListener('scroll', __checkPcardVisibility, { passive: true });
-      window.addEventListener('resize', __checkPcardVisibility, { passive: true });
-      setInterval(__checkPcardVisibility, 700); // red de seguridad además del scroll
+      window.addEventListener('scroll', mgr.pick, { passive: true });
+      window.addEventListener('resize', mgr.pick, { passive: true });
+      setInterval(mgr.pick, 500);
+      window.__pcardManager = mgr;
     }
 
     document.querySelectorAll('#proyectos .pcard-frame').forEach(function (frame) {
       var track = frame.querySelector('.pcard-track');
-      if (!track || track.__mobileCarouselInit) return;
-      track.__mobileCarouselInit = true;
+      if (!track || track.__carouselInit) return;
+      track.__carouselInit = true;
+
+      // 1) Quitar imágenes repetidas: dejar solo la 1ra aparición de cada src.
+      var seen = {};
+      Array.prototype.slice.call(track.children).forEach(function (child) {
+        var im = child.querySelector('img');
+        var src = im ? im.getAttribute('src') : null;
+        if (!src) return;
+        if (seen[src]) track.removeChild(child); else seen[src] = true;
+      });
+
       var slides = track.children.length;
       if (slides < 2) return;
 
-      // Loop infinito "de verdad" (siempre el mismo sentido, sin rebobinar):
-      // se clona la 1ra imagen al final y la última al principio. El track
-      // recorre esos clones como si fueran una imagen más y, apenas termina
-      // la transición sobre un clon, salta sin animación a la imagen real
-      // equivalente — como es la misma imagen, el salto es imperceptible.
+      // 2) Loop infinito "de verdad" (mismo sentido, sin rebobinar): se clona la 1ra
+      // imagen al final y la última al principio; al llegar a un clon se salta sin
+      // transición a la imagen real equivalente (imperceptible, es la misma imagen).
       var firstClone = track.children[0].cloneNode(true);
       var lastClone = track.children[slides - 1].cloneNode(true);
       track.appendChild(firstClone);
@@ -203,7 +215,7 @@
       });
 
       var position = 1; // arranca en la 1ra imagen real (0 es el clon de la última)
-      var timer = null, snapTimer = null, manual = false, inView = false;
+      var timer = null, snapTimer = null, manual = false, active = false;
       var dragging = false, axisLocked = null, startX = 0, startY = 0, baseX = 0;
 
       function setPos(p, withTransition) {
@@ -213,9 +225,6 @@
         track.style.transform = 'translateX(-' + (position * (100 / total)) + '%)';
         clearTimeout(snapTimer);
         if (animated) {
-          // Al llegar a un clon, reacomoda sin transición a la imagen real equivalente
-          // (con setTimeout en vez de 'transitionend', que puede no disparar si otra
-          // transición la interrumpe antes de terminar).
           snapTimer = setTimeout(function () {
             if (position === total - 1) setPos(1, false);      // clon del 1ro → 1ra real
             else if (position === 0) setPos(total - 2, false); // clon del último → última real
@@ -226,78 +235,67 @@
 
       function scheduleNext() {
         clearTimeout(timer);
-        if (manual || !inView) return;
-        timer = setTimeout(function () {
-          setPos(position + 1);
-          scheduleNext();
-        }, HOLD_MS);
+        if (manual || !active) return;
+        timer = setTimeout(function () { setPos(position + 1); scheduleNext(); }, HOLD_MS);
       }
       function stopAutoplay() { clearTimeout(timer); }
+      function play() { if (active) return; active = true; scheduleNext(); }
+      function stop() { if (!active) return; active = false; stopAutoplay(); }
 
-      function setInView(v) {
-        if (v === inView) return;
-        inView = v;
-        if (inView) scheduleNext(); else stopAutoplay();
+      if (mobile) {
+        // Autoplay coordinado por protagonismo (uno a la vez)
+        window.__pcardManager.entries.push({ frame: frame, play: play, stop: stop });
+
+        frame.addEventListener('touchstart', function (e) {
+          stopAutoplay();
+          dragging = true; axisLocked = null;
+          startX = e.touches[0].clientX; startY = e.touches[0].clientY;
+          baseX = -(position * (100 / total));
+          track.style.transition = 'none';
+        }, { passive: true });
+
+        frame.addEventListener('touchmove', function (e) {
+          if (!dragging) return;
+          var dx = e.touches[0].clientX - startX;
+          var dy = e.touches[0].clientY - startY;
+          if (axisLocked === null) axisLocked = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+          if (axisLocked === 'y') return; // dejar scrollear la página verticalmente
+          e.preventDefault();
+          var pct = (dx / (frame.clientWidth * total)) * 100; // 1:1 con el dedo
+          var raw = baseX + pct;
+          var min = -(total - 1) * (100 / total), max = 0;
+          if (raw > max) raw = max + (raw - max) * 0.3;
+          if (raw < min) raw = min + (raw - min) * 0.3;
+          track.style.transform = 'translateX(' + raw + '%)';
+        }, { passive: false });
+
+        frame.addEventListener('touchend', function (e) {
+          if (!dragging) return;
+          dragging = false;
+          if (axisLocked === 'x') {
+            manual = true; // queda en control manual: no vuelve a autoreproducirse
+            var dx = e.changedTouches[0].clientX - startX;
+            var threshold = frame.clientWidth * 0.15;
+            if (dx < -threshold) setPos(position + 1);
+            else if (dx > threshold) setPos(position - 1);
+            else setPos(position);
+          } else {
+            track.style.transition = TRANSITION_MS + 'ms cubic-bezier(.2,.7,.2,1)';
+          }
+        });
+      } else {
+        // Desktop: se reproduce al pasar el cursor por encima
+        frame.addEventListener('mouseenter', function () { play(); });
+        frame.addEventListener('mouseleave', function () { stop(); });
       }
-      window.__pcardVisibilityRegistry.push({ frame: frame, setInView: setInView });
-
-      // IntersectionObserver como disparador principal (más confiable en dispositivos reales
-      // que el poll por scroll de arriba, que queda como red de seguridad).
-      if ('IntersectionObserver' in window) {
-        new IntersectionObserver(function (entries) {
-          entries.forEach(function (e) { setInView(e.isIntersecting); });
-        }, { threshold: 0.6 }).observe(frame);
-      }
-
-      frame.addEventListener('touchstart', function (e) {
-        stopAutoplay();
-        dragging = true; axisLocked = null;
-        startX = e.touches[0].clientX; startY = e.touches[0].clientY;
-        baseX = -(position * (100 / total));
-        track.style.transition = 'none';
-      }, { passive: true });
-
-      frame.addEventListener('touchmove', function (e) {
-        if (!dragging) return;
-        var dx = e.touches[0].clientX - startX;
-        var dy = e.touches[0].clientY - startY;
-        if (axisLocked === null) axisLocked = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
-        if (axisLocked === 'y') return; // dejar scrollear la página verticalmente
-        e.preventDefault();
-        // translateX(%) es relativo al ancho del TRACK (que mide total*100% del frame),
-        // no al frame — hay que dividir por ese ancho real para que el dedo y la imagen
-        // se muevan exactamente igual (1:1), en vez de amplificado.
-        var pct = (dx / (frame.clientWidth * total)) * 100;
-        var raw = baseX + pct;
-        // Límite suave: solo hay un clon de sobra a cada lado, no dejar arrastrar más allá.
-        var min = -(total - 1) * (100 / total), max = 0;
-        if (raw > max) raw = max + (raw - max) * 0.3;
-        if (raw < min) raw = min + (raw - min) * 0.3;
-        track.style.transform = 'translateX(' + raw + '%)';
-      }, { passive: false });
-
-      frame.addEventListener('touchend', function (e) {
-        if (!dragging) return;
-        dragging = false;
-        if (axisLocked === 'x') {
-          manual = true; // a partir de acá esta card se controla solo a mano
-          var dx = e.changedTouches[0].clientX - startX;
-          var threshold = frame.clientWidth * 0.15;
-          if (dx < -threshold) setPos(position + 1);
-          else if (dx > threshold) setPos(position - 1);
-          else setPos(position);
-        } else {
-          track.style.transition = TRANSITION_MS + 'ms cubic-bezier(.2,.7,.2,1)';
-        }
-      });
     });
   }
   // Reintentos defensivos: el runtime de esta plantilla puede re-renderizar
   // las cards después de la carga inicial, así que reintentamos varias veces
   // (la función es idempotente: cada card ya inicializada se salta sola).
-  document.addEventListener('DOMContentLoaded', function () { __initMobileProjectCarousels(); });
+  document.addEventListener('DOMContentLoaded', function () { __initProjectCarousels(); });
   [0, 300, 800, 1500, 2500, 4000, 6000].forEach(function (ms) {
-    setTimeout(__initMobileProjectCarousels, ms);
+    setTimeout(__initProjectCarousels, ms);
   });
 
 </script>
@@ -332,7 +330,7 @@
             <div id="hero-screen-track" style="position:absolute;left:404px;top:125px;width:583px;height:410px;overflow:hidden;transform-origin:0 0;transform:matrix3d(0.834676,0.060553,0,-0.000122,-0.134146,0.833775,0,-0.000022,0,0,1,0,55,0,0,1);">
               <img src="assets/green-garden-panaderia-sketch.jpg" alt="Proyecto en pantalla" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:screenfade 24s ease-in-out infinite;">
               <img src="assets/escritorio-gamer-sketch.jpg" alt="Proyecto en pantalla" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:screenfade 24s ease-in-out infinite;animation-delay:-4.8s;">
-              <img src="assets/cocina-residencial-r1.jpg" alt="Proyecto en pantalla" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:screenfade 24s ease-in-out infinite;animation-delay:-9.6s;">
+              <img src="assets/cocina-residencial-2.jpg" alt="Proyecto en pantalla" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:screenfade 24s ease-in-out infinite;animation-delay:-9.6s;">
               <img src="assets/tronador-3cocinas-sketch.jpg" alt="Proyecto en pantalla" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:screenfade 24s ease-in-out infinite;animation-delay:-14.4s;">
               <img src="assets/escritorio-plegable-sketch.jpg" alt="Proyecto en pantalla" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:screenfade 24s ease-in-out infinite;animation-delay:-19.2s;">
             </div>
@@ -422,7 +420,7 @@
       </div>
       <div class="pcard" style="animation:rise both;animation-timeline:view();animation-range:entry 0% cover 36%;">
         <div class="pcard-frame" style="position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#20303A;">
-          <div class="pcard-track pt3" style="display:flex;height:100%;width:300%;"><div style="flex:0 0 33.333%;height:100%;"><img src="assets/cocina-residencial.png" alt="Cocina residencial — render" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 33.333%;height:100%;"><img data-hero src="assets/cocina-residencial-r1.jpg" alt="Cocina residencial — vista 3D" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 33.333%;height:100%;"><img src="assets/cocina-residencial-r2.jpg" alt="Cocina residencial — render final" style="width:100%;height:100%;object-fit:cover;display:block;"></div></div>
+          <div class="pcard-track pt3" style="display:flex;height:100%;width:300%;"><div style="flex:0 0 33.333%;height:100%;"><img src="assets/cocina-residencial-1.jpg" alt="Cocina residencial — boceto 3D" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 33.333%;height:100%;"><img data-hero src="assets/cocina-residencial-2.jpg" alt="Cocina residencial — modelo 3D" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 33.333%;height:100%;"><img src="assets/cocina-residencial-3.jpg" alt="Cocina residencial — render final" style="width:100%;height:100%;object-fit:cover;display:block;"></div></div>
         </div>
         <p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin:14px 0 6px;">Residencial</p><h3 style="font-family:'Sora',sans-serif;font-weight:600;font-size:16px;color:#20303A;">Cocina residencial</h3><p style="color:#4a565b;font-size:13px;line-height:1.5;margin-top:6px;">Diseño y desarrollo de cocina a medida: distribución, materiales y planos de fabricación.</p>
       </div>

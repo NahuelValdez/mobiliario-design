@@ -171,18 +171,49 @@
       track.__mobileCarouselInit = true;
       var slides = track.children.length;
       if (slides < 2) return;
-      var index = 0, timer = null, manual = false, inView = false;
+
+      // Loop infinito "de verdad" (siempre el mismo sentido, sin rebobinar):
+      // se clona la 1ra imagen al final y la última al principio. El track
+      // recorre esos clones como si fueran una imagen más y, apenas termina
+      // la transición sobre un clon, salta sin animación a la imagen real
+      // equivalente — como es la misma imagen, el salto es imperceptible.
+      var firstClone = track.children[0].cloneNode(true);
+      var lastClone = track.children[slides - 1].cloneNode(true);
+      track.appendChild(firstClone);
+      track.insertBefore(lastClone, track.children[0]);
+      var total = slides + 2;
+      track.style.width = (total * 100) + '%';
+      Array.prototype.forEach.call(track.children, function (child) {
+        child.style.flex = '0 0 ' + (100 / total) + '%';
+      });
+
+      var position = 1; // arranca en la 1ra imagen real (0 es el clon de la última)
+      var timer = null, snapTimer = null, manual = false, inView = false;
       var dragging = false, axisLocked = null, startX = 0, startY = 0, baseX = 0;
 
-      function goTo(i) {
-        index = ((i % slides) + slides) % slides; // wrap infinito: pasado el final vuelve al inicio y viceversa
-        track.style.transform = 'translateX(-' + (index * (100 / slides)) + '%)';
+      function setPos(p, withTransition) {
+        var animated = withTransition !== false;
+        track.style.transition = animated ? TRANSITION_MS + 'ms cubic-bezier(.2,.7,.2,1)' : 'none';
+        position = p;
+        track.style.transform = 'translateX(-' + (position * (100 / total)) + '%)';
+        clearTimeout(snapTimer);
+        if (animated) {
+          // Al llegar a un clon, reacomoda sin transición a la imagen real equivalente
+          // (con setTimeout en vez de 'transitionend', que puede no disparar si otra
+          // transición la interrumpe antes de terminar).
+          snapTimer = setTimeout(function () {
+            if (position === total - 1) setPos(1, false);      // clon del 1ro → 1ra real
+            else if (position === 0) setPos(total - 2, false); // clon del último → última real
+          }, TRANSITION_MS + 30);
+        }
       }
+      setPos(1, false);
+
       function scheduleNext() {
         clearTimeout(timer);
         if (manual || !inView) return;
         timer = setTimeout(function () {
-          goTo((index + 1) % slides);
+          setPos(position + 1);
           scheduleNext();
         }, HOLD_MS);
       }
@@ -207,7 +238,7 @@
         stopAutoplay();
         dragging = true; axisLocked = null;
         startX = e.touches[0].clientX; startY = e.touches[0].clientY;
-        baseX = -(index * (100 / slides));
+        baseX = -(position * (100 / total));
         track.style.transition = 'none';
       }, { passive: true });
 
@@ -218,14 +249,13 @@
         if (axisLocked === null) axisLocked = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
         if (axisLocked === 'y') return; // dejar scrollear la página verticalmente
         e.preventDefault();
-        // translateX(%) es relativo al ancho del TRACK (que mide slides*100% del frame),
+        // translateX(%) es relativo al ancho del TRACK (que mide total*100% del frame),
         // no al frame — hay que dividir por ese ancho real para que el dedo y la imagen
         // se muevan exactamente igual (1:1), en vez de amplificado.
-        var pct = (dx / (frame.clientWidth * slides)) * 100;
+        var pct = (dx / (frame.clientWidth * total)) * 100;
         var raw = baseX + pct;
-        // Resistencia suave en los bordes (primera/última imagen) para no revelar
-        // espacio en blanco del track mientras se arrastra; el wrap real ocurre al soltar.
-        var min = -(slides - 1) * (100 / slides), max = 0;
+        // Límite suave: solo hay un clon de sobra a cada lado, no dejar arrastrar más allá.
+        var min = -(total - 1) * (100 / total), max = 0;
         if (raw > max) raw = max + (raw - max) * 0.3;
         if (raw < min) raw = min + (raw - min) * 0.3;
         track.style.transform = 'translateX(' + raw + '%)';
@@ -234,18 +264,17 @@
       frame.addEventListener('touchend', function (e) {
         if (!dragging) return;
         dragging = false;
-        track.style.transition = TRANSITION_MS + 'ms cubic-bezier(.2,.7,.2,1)';
         if (axisLocked === 'x') {
           manual = true; // a partir de acá esta card se controla solo a mano
           var dx = e.changedTouches[0].clientX - startX;
           var threshold = frame.clientWidth * 0.15;
-          if (dx < -threshold) goTo(index + 1);
-          else if (dx > threshold) goTo(index - 1);
-          else goTo(index);
+          if (dx < -threshold) setPos(position + 1);
+          else if (dx > threshold) setPos(position - 1);
+          else setPos(position);
+        } else {
+          track.style.transition = TRANSITION_MS + 'ms cubic-bezier(.2,.7,.2,1)';
         }
       });
-
-      goTo(0);
     });
   }
   // Reintentos defensivos: el runtime de esta plantilla puede re-renderizar

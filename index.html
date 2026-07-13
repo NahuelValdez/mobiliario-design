@@ -24,7 +24,7 @@
   @keyframes floatIso { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
   @keyframes screenfade { 0%,26%{opacity:1;} 33%,93%{opacity:0;} 100%{opacity:1;} }
 
-  /* Project cards — hover carousel + click-to-expand info */
+  /* Project cards — hover carousel */
   .pcard { position: relative; transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s; }
   .pcard:hover { transform: translateY(-6px) scale(1.02); z-index: 3; }
   .pcard:hover .pcard-frame { box-shadow: 0 26px 54px -22px rgba(28,44,51,.55); }
@@ -33,15 +33,6 @@
   .pcard:hover .pt3b { animation: ptrackIntro3b 0.35s linear 1 forwards, ptrackLoop3b 27.15s linear 0.35s infinite; }
   .pcard:hover .pt5 { animation: ptrackIntro5 0.35s linear 1 forwards, ptrackLoop5 34s linear 0.35s infinite; }
   .pcard:hover .pt3 { animation: ptrack3 7s ease-in-out infinite; }
-  /* info panel — revealed on click of "Saber más" */
-  .pcard-info { position: absolute; inset: 0; background: #20303A; padding: 22px; display: flex; flex-direction: column; justify-content: center; gap: 9px; opacity: 0; pointer-events: none; transition: opacity .35s; z-index: 3; }
-  .pmore-cb:checked ~ .pcard-frame .pcard-info { opacity: 1; pointer-events: auto; }
-  .pmore-cb:checked ~ .pcard-frame .pcard-track { animation: none !important; }
-  .pcard-more { position: absolute; bottom: 10px; right: 10px; z-index: 4; cursor: pointer; font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: #12222A; background: #7FB0B8; padding: 6px 11px; border-radius: 999px; user-select: none; transition: background .2s; }
-  .pcard-more:hover { background: #a6ccd1; }
-  .pcard-more .lo { display: none; }
-  .pmore-cb:checked ~ .pcard-frame .pcard-more .lc { display: none; }
-  .pmore-cb:checked ~ .pcard-frame .pcard-more .lo { display: inline; }
   @keyframes ptrackIntro2 { 0%,28.571%{transform:translateX(0);} 100%{transform:translateX(-25%);} }
   @keyframes ptrackLoop2 { 0%,32.512%{transform:translateX(-25%);} 33.744%,66.256%{transform:translateX(-50%);} 67.488%,100%{transform:translateX(-75%);} }
   @keyframes ptrackIntro3b { 0%,28.571%{transform:translateX(0);} 100%{transform:translateX(-20%);} }
@@ -197,14 +188,20 @@
       }
       function stopAutoplay() { clearTimeout(timer); }
 
-      window.__pcardVisibilityRegistry.push({
-        frame: frame,
-        setInView: function (v) {
-          if (v === inView) return;
-          inView = v;
-          if (inView) scheduleNext(); else stopAutoplay();
-        }
-      });
+      function setInView(v) {
+        if (v === inView) return;
+        inView = v;
+        if (inView) scheduleNext(); else stopAutoplay();
+      }
+      window.__pcardVisibilityRegistry.push({ frame: frame, setInView: setInView });
+
+      // IntersectionObserver como disparador principal (más confiable en dispositivos reales
+      // que el poll por scroll de arriba, que queda como red de seguridad).
+      if ('IntersectionObserver' in window) {
+        new IntersectionObserver(function (entries) {
+          entries.forEach(function (e) { setInView(e.isIntersecting); });
+        }, { threshold: 0.6 }).observe(frame);
+      }
 
       frame.addEventListener('touchstart', function (e) {
         stopAutoplay();
@@ -221,7 +218,10 @@
         if (axisLocked === null) axisLocked = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
         if (axisLocked === 'y') return; // dejar scrollear la página verticalmente
         e.preventDefault();
-        var pct = (dx / frame.clientWidth) * 100;
+        // translateX(%) es relativo al ancho del TRACK (que mide slides*100% del frame),
+        // no al frame — hay que dividir por ese ancho real para que el dedo y la imagen
+        // se muevan exactamente igual (1:1), en vez de amplificado.
+        var pct = (dx / (frame.clientWidth * slides)) * 100;
         track.style.transform = 'translateX(' + (baseX + pct) + '%)';
       }, { passive: false });
 
@@ -359,56 +359,38 @@
     </div>
     <div class="grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
       <div class="pcard" style="animation:rise both;animation-timeline:view();animation-range:entry 0% cover 36%;">
-        <input type="checkbox" id="more-p1" class="pmore-cb" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
         <div class="pcard-frame" style="position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#20303A;">
           <div class="pcard-track pt2" style="display:flex;height:100%;width:400%;"><div style="flex:0 0 25%;height:100%;"><img src="assets/green-garden-panaderia.jpg" alt="Panadería Green Garden" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/green-garden-panaderia-sketch.jpg" alt="Panadería — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/green-garden-render.jpg" alt="Panadería Green Garden — render" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/green-garden-panaderia.jpg" alt="Panadería Green Garden" style="width:100%;height:100%;object-fit:cover;display:block;"></div></div></label></label></label></label></label></label>
-          <div class="pcard-info"><p style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#7FB0B8;">Rol · Diseño + documentación</p><p style="font-size:13px;line-height:1.55;color:#ECE7DD;">Mostradores, exhibidores y depósito. Despieces y optimización de placas listos para taller.</p></div>
-          <label for="more-p1" class="pcard-more"><span class="lc">Saber más</span><span class="lo">Cerrar</span></label>
         </div>
         <p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin:14px 0 6px;">Comercial</p><h3 style="font-family:'Sora',sans-serif;font-weight:600;font-size:16px;color:#20303A;">Local comercial — Panadería Green Garden</h3><p style="color:#4a565b;font-size:13px;line-height:1.5;margin-top:6px;">Equipamiento integral para local gastronómico: mostradores, exhibidores y mobiliario a medida.</p>
       </div>
       <div class="pcard" style="animation:rise both;animation-timeline:view();animation-range:entry 0% cover 36%;">
-        <input type="checkbox" id="more-p2" class="pmore-cb" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
         <div class="pcard-frame" style="position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#20303A;">
           <div class="pcard-track pt2" style="display:flex;height:100%;width:400%;"><div style="flex:0 0 25%;height:100%;"><img src="assets/escritorio-gamer.jpg" alt="Escritorio gamer con curva" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/escritorio-gamer-sketch.jpg" alt="Escritorio gamer — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/escritorio-gamer-render.jpg" alt="Escritorio gamer — render con medidas" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/escritorio-gamer.jpg" alt="Escritorio gamer con curva" style="width:100%;height:100%;object-fit:cover;display:block;"></div></div>
-          <div class="pcard-info"><p style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#7FB0B8;">Rol · Diseño + render</p><p style="font-size:13px;line-height:1.55;color:#ECE7DD;">Superficie curva continua, pasacables integrado y estructura pensada para producción.</p></div>
-          <label for="more-p2" class="pcard-more"><span class="lc">Saber más</span><span class="lo">Cerrar</span></label>
         </div>
         <p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin:14px 0 6px;">Residencial</p><h3 style="font-family:'Sora',sans-serif;font-weight:600;font-size:16px;color:#20303A;">Escritorio gamer con curva</h3><p style="color:#4a565b;font-size:13px;line-height:1.5;margin-top:6px;">Escritorio a medida con desarrollo de superficie curva, pensado para ergonomía y cableado oculto.</p>
       </div>
       <div class="pcard" style="animation:rise both;animation-timeline:view();animation-range:entry 0% cover 36%;">
-        <input type="checkbox" id="more-p3" class="pmore-cb" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
         <div class="pcard-frame" style="position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#20303A;">
           <div class="pcard-track pt2" style="display:flex;height:100%;width:400%;"><div style="flex:0 0 25%;height:100%;"><img src="assets/cocina-residencial.png" alt="Cocina residencial" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/cocina-residencial-sketch.jpg" alt="Cocina residencial — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/cocina-residencial.png" alt="Cocina residencial" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/cocina-residencial-sketch.jpg" alt="Cocina residencial — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div></div>
-          <div class="pcard-info"><p style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#7FB0B8;">Rol · Diseño + planos</p><p style="font-size:13px;line-height:1.55;color:#ECE7DD;">Distribución, selección de materiales y planos de fabricación a medida.</p></div>
-          <label for="more-p3" class="pcard-more"><span class="lc">Saber más</span><span class="lo">Cerrar</span></label>
         </div>
         <p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin:14px 0 6px;">Residencial</p><h3 style="font-family:'Sora',sans-serif;font-weight:600;font-size:16px;color:#20303A;">Cocina residencial</h3><p style="color:#4a565b;font-size:13px;line-height:1.5;margin-top:6px;">Diseño y desarrollo de cocina a medida: distribución, materiales y planos de fabricación.</p>
       </div>
       <div class="pcard" style="animation:rise both;animation-timeline:view();animation-range:entry 0% cover 40%;">
-        <input type="checkbox" id="more-p4" class="pmore-cb" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
         <div class="pcard-frame" style="position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#20303A;">
           <div class="pcard-track pt2" style="display:flex;height:100%;width:400%;"><div style="flex:0 0 25%;height:100%;"><img src="assets/tronador-3cocinas.jpg" alt="3 cocinas para edificio" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/tronador-3cocinas-sketch.jpg" alt="3 cocinas — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/tronador-3cocinas.jpg" alt="3 cocinas para edificio" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/tronador-3cocinas-sketch.jpg" alt="3 cocinas — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div></div>
-          <div class="pcard-info"><p style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#7FB0B8;">Rol · Tipologías + obra</p><p style="font-size:13px;line-height:1.55;color:#ECE7DD;">Módulos repetibles, estandarización de piezas y optimización de costos para desarrollo.</p></div>
-          <label for="more-p4" class="pcard-more"><span class="lc">Saber más</span><span class="lo">Cerrar</span></label>
         </div>
         <p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin:14px 0 6px;">Obra / Desarrollo</p><h3 style="font-family:'Sora',sans-serif;font-weight:600;font-size:16px;color:#20303A;">3 cocinas genéricas para edificio</h3><p style="color:#4a565b;font-size:13px;line-height:1.5;margin-top:6px;">Desarrollo de tipologías repetibles para obra: estandarización de piezas y optimización de costos.</p>
       </div>
       <div class="pcard" style="animation:rise both;animation-timeline:view();animation-range:entry 0% cover 40%;">
-        <input type="checkbox" id="more-p5" class="pmore-cb" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
         <div class="pcard-frame" style="position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#20303A;">
           <div class="pcard-track pt5" style="display:flex;height:100%;width:600%;"><div style="flex:0 0 16.667%;height:100%;"><img src="assets/escritorio-plegable.jpg" alt="Escritorio plegable" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 16.667%;height:100%;"><img src="assets/escritorio-plegable-sketch.jpg" alt="Escritorio plegable — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 16.667%;height:100%;"><img src="assets/escritorio-plegable-r1.png" alt="Escritorio plegable — render" style="width:100%;height:100%;object-fit:cover;object-position:center 5%;display:block;"></div><div style="flex:0 0 16.667%;height:100%;"><img src="assets/escritorio-plegable-r4.png" alt="Escritorio plegable — render" style="width:100%;height:100%;object-fit:cover;object-position:center 5%;display:block;"></div><div style="flex:0 0 16.667%;height:100%;"><img src="assets/escritorio-plegable.jpg" alt="Escritorio plegable" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 16.667%;height:100%;"><img src="assets/escritorio-plegable-sketch.jpg" alt="Escritorio plegable — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div></div>
-          <div class="pcard-info"><p style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#7FB0B8;">Rol · Diseño + optimización</p><p style="font-size:13px;line-height:1.55;color:#ECE7DD;">Todo el proyecto resuelto en 2 placas: guardado y estantería en distintas configuraciones.</p></div>
-          <label for="more-p5" class="pcard-more"><span class="lc">Saber más</span><span class="lo">Cerrar</span></label>
         </div>
         <p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin:14px 0 6px;">Residencial</p><h3 style="font-family:'Sora',sans-serif;font-weight:600;font-size:16px;color:#20303A;">Escritorio plegable</h3><p style="color:#4a565b;font-size:13px;line-height:1.5;margin-top:6px;">Diseño resuelto en no más de 2 placas por presupuesto: espacios de guardado y estantes que habilitan distintas configuraciones.</p>
       </div>
       <div class="pcard" style="animation:rise both;animation-timeline:view();animation-range:entry 0% cover 40%;">
-        <input type="checkbox" id="more-p6" class="pmore-cb" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
         <div class="pcard-frame" style="position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#20303A;">
           <div class="pcard-track pt3b" style="display:flex;height:100%;width:500%;"><div style="flex:0 0 20%;height:100%;"><img src="assets/escritorio-ingenieria-sketch.jpg" alt="Escritorios ingeniería — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 20%;height:100%;"><img src="assets/escritorio-ingenieria.jpg" alt="Escritorios para ingeniería" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 20%;height:100%;"><img src="assets/escritorio-ingenieria-r2.jpg" alt="Escritorios ingeniería — render" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 20%;height:100%;"><img src="assets/escritorio-ingenieria-sketch.jpg" alt="Escritorios ingeniería — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 20%;height:100%;"><img src="assets/escritorio-ingenieria.jpg" alt="Escritorios para ingeniería" style="width:100%;height:100%;object-fit:cover;display:block;"></div></div>
-          <div class="pcard-info"><p style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#7FB0B8;">Rol · Serie + montaje</p><p style="font-size:13px;line-height:1.55;color:#ECE7DD;">Puestos modulares para oficina técnica: modulación y montaje en planta.</p></div>
-          <label for="more-p6" class="pcard-more"><span class="lc">Saber más</span><span class="lo">Cerrar</span></label>
         </div>
         <p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin:14px 0 6px;">Corporativo</p><h3 style="font-family:'Sora',sans-serif;font-weight:600;font-size:16px;color:#20303A;">Escritorios para empresa de ingeniería</h3><p style="color:#4a565b;font-size:13px;line-height:1.5;margin-top:6px;">Puestos de trabajo para oficina técnica: series, modulación y montaje en planta.</p>
       </div>

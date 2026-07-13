@@ -65,11 +65,11 @@
     .nav-cb:checked ~ .nav-burger span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
     .nav-cb:checked ~ .nav-burger span:nth-child(2) { opacity: 0; }
     .nav-cb:checked ~ .nav-burger span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-    .sec-hero { grid-template-columns: 1fr !important; padding: 34px 22px 30px !important; gap: 44px !important; }
+    .sec-hero { grid-template-columns: 1fr !important; padding: 34px 22px 30px !important; gap: 18px !important; }
     /* Navbar se oculta hacia arriba al scrollear (clase toggled por JS) */
     .sec-nav.nav-hidden { transform: translateY(-100%); }
-    /* Hero: entrada en cascada (laptop primero, botón después) + más aire arriba de la laptop */
-    .hero-visual { animation: none !important; gap: 34px !important; padding-top: 6px !important; }
+    /* Hero: entrada en cascada (laptop primero, botón después), más arriba para que entre completa */
+    .hero-visual { animation: none !important; gap: 34px !important; padding-top: 0 !important; }
     .hero-laptop { animation: heroLiftLaptop 1.8s cubic-bezier(.16,1,.3,1) .15s both, floatIso 8s ease-in-out 2s infinite !important; }
     .hero-actions { animation: heroLiftIn .7s cubic-bezier(.2,.7,.2,1) .5s both; }
     .sec-pad { padding: 48px 22px !important; }
@@ -175,7 +175,7 @@
       var dragging = false, axisLocked = null, startX = 0, startY = 0, baseX = 0;
 
       function goTo(i) {
-        index = Math.max(0, Math.min(slides - 1, i));
+        index = ((i % slides) + slides) % slides; // wrap infinito: pasado el final vuelve al inicio y viceversa
         track.style.transform = 'translateX(-' + (index * (100 / slides)) + '%)';
       }
       function scheduleNext() {
@@ -222,7 +222,13 @@
         // no al frame — hay que dividir por ese ancho real para que el dedo y la imagen
         // se muevan exactamente igual (1:1), en vez de amplificado.
         var pct = (dx / (frame.clientWidth * slides)) * 100;
-        track.style.transform = 'translateX(' + (baseX + pct) + '%)';
+        var raw = baseX + pct;
+        // Resistencia suave en los bordes (primera/última imagen) para no revelar
+        // espacio en blanco del track mientras se arrastra; el wrap real ocurre al soltar.
+        var min = -(slides - 1) * (100 / slides), max = 0;
+        if (raw > max) raw = max + (raw - max) * 0.3;
+        if (raw < min) raw = min + (raw - min) * 0.3;
+        track.style.transform = 'translateX(' + raw + '%)';
       }, { passive: false });
 
       frame.addEventListener('touchend', function (e) {

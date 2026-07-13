@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600&family=Spectral:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { background: #ECE7DD; font-family: "Inter", sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; text-decoration: none; }
+  a.txtlink { color: #2F6D7A; }
+  a.txtlink:hover { color: #20303A; }
+  @keyframes rise { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: none; } }
+  @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  @keyframes floaty { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-16px) rotate(3deg); } }
+  @keyframes floatIso { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
+  @keyframes screenfade { 0%,26%{opacity:1;} 33%,93%{opacity:0;} 100%{opacity:1;} }
+
+  /* Project cards — hover carousel + click-to-expand info */
+  .pcard { position: relative; transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s; }
+  .pcard:hover { transform: translateY(-6px) scale(1.02); z-index: 3; }
+  .pcard:hover .pcard-frame { box-shadow: 0 26px 54px -22px rgba(28,44,51,.55); }
+  .pcard-track { transform: translateX(0); }
+  .pcard:hover .pt2 { animation: ptrackIntro2 0.35s linear 1 forwards, ptrackLoop2 20.3s linear 0.35s infinite; }
+  .pcard:hover .pt3b { animation: ptrackIntro3b 0.35s linear 1 forwards, ptrackLoop3b 27.15s linear 0.35s infinite; }
+  .pcard:hover .pt5 { animation: ptrackIntro5 0.35s linear 1 forwards, ptrackLoop5 34s linear 0.35s infinite; }
+  .pcard:hover .pt3 { animation: ptrack3 7s ease-in-out infinite; }
+  /* info panel — revealed on click of "Saber más" */
+  .pcard-info { position: absolute; inset: 0; background: #20303A; padding: 22px; display: flex; flex-direction: column; justify-content: center; gap: 9px; opacity: 0; pointer-events: none; transition: opacity .35s; z-index: 3; }
+  .pmore-cb:checked ~ .pcard-frame .pcard-info { opacity: 1; pointer-events: auto; }
+  .pmore-cb:checked ~ .pcard-frame .pcard-track { animation: none !important; }
+  .pcard-more { position: absolute; bottom: 10px; right: 10px; z-index: 4; cursor: pointer; font-family: 'Space Mono', monospace; font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: #12222A; background: #7FB0B8; padding: 6px 11px; border-radius: 999px; user-select: none; transition: background .2s; }
+  .pcard-more:hover { background: #a6ccd1; }
+  .pcard-more .lo { display: none; }
+  .pmore-cb:checked ~ .pcard-frame .pcard-more .lc { display: none; }
+  .pmore-cb:checked ~ .pcard-frame .pcard-more .lo { display: inline; }
+  @keyframes ptrackIntro2 { 0%,28.571%{transform:translateX(0);} 100%{transform:translateX(-25%);} }
+  @keyframes ptrackLoop2 { 0%,32.512%{transform:translateX(-25%);} 33.744%,66.256%{transform:translateX(-50%);} 67.488%,100%{transform:translateX(-75%);} }
+  @keyframes ptrackIntro3b { 0%,28.571%{transform:translateX(0);} 100%{transform:translateX(-20%);} }
+  @keyframes ptrackLoop3b { 0%,24.309%{transform:translateX(-20%);} 25.230%,49.539%{transform:translateX(-40%);} 50.460%,74.769%{transform:translateX(-60%);} 75.690%,100%{transform:translateX(-80%);} }
+  @keyframes ptrackIntro5 { 0%,28.571%{transform:translateX(0);} 100%{transform:translateX(-16.667%);} }
+  @keyframes ptrackLoop5 { 0%,19.412%{transform:translateX(-16.667%);} 20.147%,39.559%{transform:translateX(-33.333%);} 40.294%,59.706%{transform:translateX(-50%);} 60.441%,79.853%{transform:translateX(-66.667%);} 80.588%,100%{transform:translateX(-83.333%);} }
+  @keyframes ptrack3 { 0%,18%{transform:translateX(0);} 26%,44%{transform:translateX(-33.333%);} 52%,100%{transform:translateX(-66.666%);} }
+  @media (prefers-reduced-motion: reduce) { .pcard:hover .pt2, .pcard:hover .pt3 { animation: none; } }
+
+
+  /* Nav hamburger (mobile) */
+  .nav-burger { display: none; flex-direction: column; justify-content: center; gap: 5px; width: 34px; height: 34px; cursor: pointer; }
+  .nav-burger span { display: block; height: 2px; width: 22px; background: #20303A; transition: transform .3s, opacity .3s; }
+
+  /* Responsive — mobile */
+  @media (max-width: 860px) {
+    .sec-nav { padding: 15px 20px !important; position: relative; }
+    .nav-burger { display: flex; }
+    .sec-navlinks { position: absolute; top: 100%; left: 0; right: 0; flex-direction: column !important; gap: 0 !important; background: #ECE7DD; border-bottom: 1px solid #20303A; padding: 0 !important; font-size: 13px !important; letter-spacing: 0.08em; max-height: 0; overflow: hidden; opacity: 0; transition: max-height .35s ease, opacity .3s; }
+    .sec-navlinks > a { padding: 16px 20px !important; border-top: 1px solid #D5CEBF; border-bottom: 0 !important; width: 100%; }
+    .hero-cta-1 { display: none !important; }
+    .nav-cb:checked ~ .sec-navlinks { max-height: 220px; opacity: 1; }
+    .nav-cb:checked ~ .nav-burger span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+    .nav-cb:checked ~ .nav-burger span:nth-child(2) { opacity: 0; }
+    .nav-cb:checked ~ .nav-burger span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+    .sec-hero { grid-template-columns: 1fr !important; padding: 34px 22px 30px !important; gap: 26px !important; }
+    .sec-pad { padding: 48px 22px !important; }
+    .grid-3 { grid-template-columns: 1fr !important; }
+    .sec-contact { padding: 56px 22px !important; }
+    .sec-contact-grid { grid-template-columns: 1fr !important; gap: 28px !important; }
+    .sec-h2row { flex-direction: column; align-items: flex-start !important; gap: 8px; }
+    .rec-row { grid-template-columns: 52px 1fr !important; gap: 16px !important; }
+    .rec-num { font-size: 42px !important; }
+    .marq { font-size: 20px !important; }
+    .contact-row { flex-direction: column !important; align-items: flex-start !important; gap: 5px !important; }
+  }
+</style>
+<script>
+  document.addEventListener('click', function (e) {
+    var link = e.target.closest && e.target.closest('.sec-navlinks a');
+    if (link) { var cb = document.getElementById('navtoggle'); if (cb) cb.checked = false; }
+  });
+  // Cerrar el menú mobile y las cards expandidas al hacer scroll
+  var __lastY = window.scrollY;
+  window.addEventListener('scroll', function () {
+    if (Math.abs(window.scrollY - __lastY) > 6) {
+      var cb = document.getElementById('navtoggle');
+      if (cb && cb.checked) cb.checked = false;
+    }
+    __lastY = window.scrollY;
+  }, { passive: true });
+  // Escalar el notebook del hero de forma responsive (scale() no acepta cqw)
+  function __scaleLaptop() {
+    document.querySelectorAll('.lap-box').forEach(function (b) {
+      b.style.setProperty('--laps', (b.clientWidth / 1200).toFixed(5));
+    });
+  }
+  window.addEventListener('resize', __scaleLaptop, { passive: true });
+  window.addEventListener('load', __scaleLaptop);
+  setTimeout(__scaleLaptop, 0);
+  // Pantalla del hero: siempre la 1ra imagen de cada card de proyectos, en su mismo orden
+  // (solo actualiza src/alt de las imágenes ya presentes en el template — nunca crea/quita nodos,
+  // para no pisar el árbol que React administra)
+  function __syncHeroScreen() {
+    var track = document.getElementById('hero-screen-track');
+    if (!track) return;
+    var slots = track.querySelectorAll('img');
+    var tracks = document.querySelectorAll('#proyectos .pcard-track');
+    if (!slots.length || !tracks.length) return;
+    var srcs = [];
+    tracks.forEach(function (t) {
+      var img = t.querySelector('img');
+      if (img) srcs.push(img.getAttribute('src'));
+    });
+    var n = Math.min(slots.length, srcs.length);
+    for (var i = 0; i < n; i++) {
+      if (slots[i].getAttribute('src') !== srcs[i]) slots[i].setAttribute('src', srcs[i]);
+      slots[i].style.display = '';
+    }
+    for (var j = n; j < slots.length; j++) { slots[j].style.display = 'none'; }
+  }
+  document.addEventListener('DOMContentLoaded', __syncHeroScreen);
+  setTimeout(__syncHeroScreen, 0);
+</script>
+</helmet>
+
+<div data-screen-label="Landing Nahuel Valdez" style="max-width:1240px;margin:0 auto;background:#ECE7DD;">
+
+  <!-- NAV -->
+  <div class="sec-nav" style="position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:20px 48px;border-bottom:1px solid #20303A;background:rgba(236,231,221,.88);backdrop-filter:blur(8px);">
+    <a href="#inicio" style="font-family:'Spectral',serif;font-size:22px;font-weight:600;color:#20303A;letter-spacing:-0.01em;">Nahuel<span style="color:#2F6D7A;">Valdez</span></a>
+    <input type="checkbox" id="navtoggle" class="nav-cb" style="display:none;">
+    <label for="navtoggle" class="nav-burger" aria-label="Abrir menú"><span></span><span></span><span></span></label>
+    <div class="sec-navlinks" style="display:flex;gap:34px;align-items:center;font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">
+      <a href="#recorrido" style="color:#5f6b6f;">Recorrido</a>
+      <a href="#proyectos" style="color:#5f6b6f;">Proyectos</a>
+      <a href="#contacto" style="color:#20303A;border-bottom:2px solid #2F6D7A;padding-bottom:2px;">Contacto</a>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div id="inicio" class="sec-hero" style="padding:60px 48px 44px;position:relative;overflow:hidden;display:grid;grid-template-columns:1.15fr 0.85fr;gap:40px;align-items:center;">
+    <div>
+      <p style="font-family:'Space Mono',monospace;font-size:13px;letter-spacing:0.16em;text-transform:uppercase;color:#2F6D7A;margin-bottom:22px;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 12%;">Diseñador industrial (UNLP) — La Plata, Argentina</p>
+      <h1 style="font-family:'Spectral',serif;font-weight:400;font-size:clamp(40px,4.8vw,68px);line-height:1.0;letter-spacing:-0.025em;color:#20303A;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 16%;">Desarrollo sistemas<br>de mobiliario <em style="font-style:italic;color:#2F6D7A;">/</em><br>proyectos a medida.</h1>
+      <p style="color:#4a565b;font-size:16px;line-height:1.7;max-width:540px;border-top:1px solid #20303A;padding-top:20px;margin-top:26px;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 20%;">Diseño mobiliario entendiendo todo su ciclo de vida. Mi paso por la producción, la gestión de materiales y la instalación me permite crear proyectos donde el diseño y los procesos productivos se encuentran. Del concepto a la materialización. El objetivo es un mobiliario <strong style="color:#20303A;">estético, funcional y optimizado para su instalación.</strong></p>
+    </div>
+    <div style="display:flex;flex-direction:column;align-items:center;gap:52px;padding:30px 6px;perspective:1300px;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 22%;">
+      <div style="width:100%;max-width:560px;animation:floatIso 8s ease-in-out infinite;position:relative;">
+        <div class="lap-box" style="position:relative;width:100%;aspect-ratio:3/2;">
+          <div style="position:absolute;top:0;left:0;width:1200px;height:800px;transform-origin:top left;transform:scale(var(--laps,0.264));">
+            <img src="assets/laptop-mockup.png" alt="Notebook con proyectos de Nahuel Valdez" style="position:absolute;top:0;left:0;width:1200px;height:800px;">
+            <div id="hero-screen-track" style="position:absolute;left:404px;top:125px;width:583px;height:410px;overflow:hidden;transform-origin:0 0;transform:matrix3d(0.834676,0.060553,0,-0.000122,-0.134146,0.833775,0,-0.000022,0,0,1,0,55,0,0,1);">
+              <img src="assets/green-garden-panaderia.jpg" alt="Proyecto en pantalla" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:screenfade 24s ease-in-out infinite;">
+              <img src="assets/escritorio-gamer.jpg" alt="Proyecto en pantalla" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:screenfade 24s ease-in-out infinite;animation-delay:-4s;">
+              <img src="assets/cocina-residencial.png" alt="Proyecto en pantalla" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:screenfade 24s ease-in-out infinite;animation-delay:-8s;">
+              <img src="assets/tronador-3cocinas.jpg" alt="Proyecto en pantalla" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:screenfade 24s ease-in-out infinite;animation-delay:-12s;">
+              <img src="assets/escritorio-plegable.jpg" alt="Proyecto en pantalla" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:screenfade 24s ease-in-out infinite;animation-delay:-16s;">
+              <img src="assets/escritorio-ingenieria-sketch.jpg" alt="Proyecto en pantalla" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;animation:screenfade 24s ease-in-out infinite;animation-delay:-20s;">
+            </div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+        <a href="#contacto" class="hero-cta-1" style="font-family:'Space Mono',monospace;font-size:13px;letter-spacing:0.04em;background:#20303A;color:#ECE7DD;padding:16px 26px;border-radius:999px;transition:transform .2s,background .2s;" style-hover="transform:translateY(-3px);background:#2F6D7A;">Hablemos →</a>
+        <a href="#proyectos" style="font-family:'Space Mono',monospace;font-size:13px;letter-spacing:0.04em;color:#20303A;padding:16px 26px;border-radius:999px;border:1.5px solid #20303A;transition:transform .2s;" style-hover="transform:translateY(-3px);">Ver proyectos</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- MARQUEE -->
+  <div style="border-top:1px solid #20303A;border-bottom:1px solid #20303A;overflow:hidden;padding:15px 0;background:#E0DACB;">
+    <div class="marq" style="display:flex;width:max-content;animation:marquee 26s linear infinite;font-family:'Spectral',serif;font-style:italic;font-size:26px;color:#20303A;white-space:nowrap;">
+      <span style="padding:0 26px;">Rhinoceros8 · Keyshot</span><span style="color:#2F6D7A;">✦</span><span style="padding:0 26px;">Despieces y optimización</span><span style="color:#2F6D7A;">✦</span><span style="padding:0 26px;">Sketchup · D5Render</span><span style="color:#2F6D7A;">✦</span><span style="padding:0 26px;">Especificación de herrajes</span><span style="color:#2F6D7A;">✦</span><span style="padding:0 26px;">Optimización CNC</span><span style="color:#2F6D7A;">✦</span>
+      <span style="padding:0 26px;">Rhinoceros8 · Keyshot</span><span style="color:#2F6D7A;">✦</span><span style="padding:0 26px;">Despieces y optimización</span><span style="color:#2F6D7A;">✦</span><span style="padding:0 26px;">Sketchup · D5Render</span><span style="color:#2F6D7A;">✦</span><span style="padding:0 26px;">Especificación de herrajes</span><span style="color:#2F6D7A;">✦</span><span style="padding:0 26px;">Optimización CNC</span><span style="color:#2F6D7A;">✦</span>
+    </div>
+  </div>
+
+  <!-- RECORRIDO -->
+  <div id="recorrido" class="sec-pad" style="padding:76px 48px;scroll-margin-top:80px;">
+    <div class="sec-h2row" style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #20303A;padding-bottom:18px;margin-bottom:40px;">
+      <h2 style="font-family:'Spectral',serif;font-weight:400;font-size:clamp(28px,3.4vw,44px);letter-spacing:-0.02em;color:#20303A;">Experiencia transversal en el sector.</h2>
+      <p style="font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#5f6b6f;">Recorrido — 5 etapas</p>
+    </div>
+    <p style="color:#4a565b;font-size:16px;line-height:1.7;max-width:720px;margin-bottom:36px;">Taller → Prearmado → Diseño → Venta → Asesoramiento. Cada etapa aportó un conocimiento crítico del proceso constructivo y comercial. La integración de estas experiencias es el valor fundamental que aporto a cada proyecto.</p>
+    <div style="display:flex;flex-direction:column;">
+      <div class="rec-row" style="display:grid;grid-template-columns:120px 1fr;gap:32px;padding:26px 0;border-bottom:1px solid #D5CEBF;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 30%;">
+        <span class="rec-num" style="font-family:'Spectral',serif;font-size:62px;line-height:1;color:#2F6D7A;">01</span>
+        <div><h3 style="font-family:'Sora',sans-serif;font-weight:700;font-size:21px;color:#20303A;margin-bottom:4px;">Taller e instalación</h3><p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin-bottom:10px;">ML PLAK · Mueblería</p><p style="color:#4a565b;font-size:15px;line-height:1.65;max-width:640px;">Instalación y prearmado de muebles a medida. Acá aprendí lo que ningún software enseña: cómo se comporta el material real, qué tolerancias perdonan y cuáles no, y qué errores de diseño se pagan en obra.</p></div>
+      </div>
+      <div class="rec-row" style="display:grid;grid-template-columns:120px 1fr;gap:32px;padding:26px 0;border-bottom:1px solid #D5CEBF;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 30%;">
+        <span class="rec-num" style="font-family:'Spectral',serif;font-size:62px;line-height:1;color:#2F6D7A;">02</span>
+        <div><h3 style="font-family:'Sora',sans-serif;font-weight:700;font-size:21px;color:#20303A;margin-bottom:4px;">Del plano a la máquina</h3><p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin-bottom:10px;">OSLO · Metalúrgica</p><p style="color:#4a565b;font-size:15px;line-height:1.65;max-width:640px;">Dibujo técnico en AutoCAD y operación de máquina de corte láser: documentación técnica pensada para la máquina que la va a ejecutar. Otros procesos: plegado de chapas, soldadura y corte plasma.</p></div>
+      </div>
+      <div class="rec-row" style="display:grid;grid-template-columns:120px 1fr;gap:32px;padding:26px 0;border-bottom:1px solid #D5CEBF;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 30%;">
+        <span class="rec-num" style="font-family:'Spectral',serif;font-size:62px;line-height:1;color:#2F6D7A;">03</span>
+        <div><h3 style="font-family:'Sora',sans-serif;font-weight:700;font-size:21px;color:#20303A;margin-bottom:4px;">Diseño de mobiliario</h3><p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin-bottom:10px;">CUBES · RIMU</p><p style="color:#4a565b;font-size:15px;line-height:1.65;max-width:640px;">Diseño de mobiliario y validación directa con clientes: traducir requerimientos en propuestas concretas y ajustarlas contra feedback real. Diseño pensado para su fabricación en CNC, con optimización de tableros y resolución de cortes curvos. Softwares: SketchUp, Rhinoceros, AutoCAD, D5 Render, OpenCutList.</p></div>
+      </div>
+      <div class="rec-row" style="display:grid;grid-template-columns:120px 1fr;gap:32px;padding:26px 0;border-bottom:1px solid #D5CEBF;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 30%;">
+        <span class="rec-num" style="font-family:'Spectral',serif;font-size:62px;line-height:1;color:#2F6D7A;">04</span>
+        <div><h3 style="font-family:'Sora',sans-serif;font-weight:700;font-size:21px;color:#20303A;margin-bottom:4px;">Proyectos freelance</h3><p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin-bottom:10px;">6 años · en paralelo</p><p style="color:#4a565b;font-size:15px;line-height:1.65;max-width:640px;">Diseño, representación 3D fotorrealista y desarrollo constructivo para producción. Proyectos de mobiliario y producto resueltos de principio a fin: concepto, modelado, renderizado, planos y despieces listos para CNC, corte láser o impresión 3D.</p></div>
+      </div>
+      <div class="rec-row" style="display:grid;grid-template-columns:120px 1fr;gap:32px;padding:26px 0;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 30%;">
+        <span class="rec-num" style="font-family:'Spectral',serif;font-size:62px;line-height:1;color:#2F6D7A;">05</span>
+        <div><h3 style="font-family:'Sora',sans-serif;font-weight:700;font-size:21px;color:#20303A;margin-bottom:4px;">Venta y asesoramiento técnico</h3><p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin-bottom:10px;">El Emporio del Terciado · 2,5 años</p><p style="color:#4a565b;font-size:15px;line-height:1.65;max-width:640px;">Resolución técnica y comercial de proyectos de mobiliario para profesionales activos: estudios de interiorismo, diseñadores y carpinteros. Asesoramiento en materiales, optimización de despieces y especificación de herrajes de distintas marcas (Grupo Euro, Häfele, Ducasse). Acá pude pulir la parte comercial: cómo se cotiza, se vende y se decide un mueble en el mercado.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OFERTA -->
+  <div class="sec-pad" style="padding:76px 48px;background:#E0DACB;border-top:1px solid #20303A;">
+    <div class="sec-h2row" style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #20303A;padding-bottom:18px;margin-bottom:40px;">
+      <h2 style="font-family:'Spectral',serif;font-weight:400;font-size:clamp(28px,3.4vw,44px);letter-spacing:-0.02em;color:#20303A;">Capacidades técnicas y propuesta de valor</h2>
+      <p style="font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#5f6b6f;">Soluciones — 06</p>
+    </div>
+    <div class="grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:#20303A;border:1px solid #20303A;">
+      <div style="background:#ECE7DD;padding:28px 24px;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 34%;"><span style="font-family:'Space Mono',monospace;font-size:12px;color:#2F6D7A;">01</span><h3 style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;color:#20303A;margin:8px 0 8px;">Optimización constructiva</h3><p style="color:#4a565b;font-size:14px;line-height:1.6;">Proyectos concebidos desde el inicio para su producción eficiente. Desarrollo de despieces precisos y análisis de rendimiento de materiales que minimizan los tiempos de taller, reducen el desperdicio y anticipan los imprevistos de la etapa de montaje.</p></div>
+      <div style="background:#ECE7DD;padding:28px 24px;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 34%;"><span style="font-family:'Space Mono',monospace;font-size:12px;color:#2F6D7A;">02</span><h3 style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;color:#20303A;margin:8px 0 8px;">Visualización y validación de proyecto</h3><p style="color:#4a565b;font-size:14px;line-height:1.6;">Modelos en alta fidelidad y renders fotorrealistas que permiten previsualizar el mobiliario en detalle antes del primer corte. Una herramienta clave para la toma de decisiones estéticas y comerciales.</p><p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.06em;color:#2F6D7A;margin-top:12px;">SketchUp · AutoCAD · Rhinoceros · D5 Render · KeyShot</p></div>
+      <div style="background:#ECE7DD;padding:28px 24px;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 34%;"><span style="font-family:'Space Mono',monospace;font-size:12px;color:#2F6D7A;">03</span><h3 style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;color:#20303A;margin:8px 0 8px;">Materiales y herrajes</h3><p style="color:#4a565b;font-size:14px;line-height:1.6;">Conocimiento aplicado de placas, terminaciones y herrajes de las principales marcas del mercado (Grupo Euro, Häfele, Ducasse). Especificación correcta desde el diseño para evitar reemplazos y sobrecostos en obra.</p></div>
+      <div style="background:#ECE7DD;padding:28px 24px;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 38%;"><span style="font-family:'Space Mono',monospace;font-size:12px;color:#2F6D7A;">04</span><h3 style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;color:#20303A;margin:8px 0 8px;">Prototipado y manufactura digital</h3><p style="color:#4a565b;font-size:14px;line-height:1.6;">Integración de procesos aditivos y sustractivos: impresión 3D, ruteado CNC, corte láser y plegado. Validación formal, ergonómica y funcional de componentes mecánicos y de mobiliario mediante prototipos físicos.</p></div>
+      <div style="background:#ECE7DD;padding:28px 24px;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 38%;"><span style="font-family:'Space Mono',monospace;font-size:12px;color:#2F6D7A;">05</span><h3 style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;color:#20303A;margin:8px 0 8px;">Investigación de tendencias</h3><p style="color:#4a565b;font-size:14px;line-height:1.6;">Análisis continuo del mercado, nuevos materiales y tendencias de habitabilidad. Identificación de oportunidades de diseño para mejorar la competitividad comercial de líneas de mobiliario, en serie y a medida.</p></div>
+      <div style="background:#ECE7DD;padding:28px 24px;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 38%;"><span style="font-family:'Space Mono',monospace;font-size:12px;color:#2F6D7A;">06</span><h3 style="font-family:'Sora',sans-serif;font-weight:700;font-size:17px;color:#20303A;margin:8px 0 8px;">Intermediación entre rubros</h3><p style="color:#4a565b;font-size:14px;line-height:1.6;">Capacidad de unificar criterios entre la arquitectura, la producción en taller y el sector comercial. Dominio del lenguaje técnico de cada disciplina para actuar como nexo, cuidando que el diseño original se ejecute con fidelidad en la obra.</p></div>
+    </div>
+  </div>
+
+  <!-- PROYECTOS -->
+  <div id="proyectos" class="sec-pad" style="padding:76px 48px;scroll-margin-top:80px;">
+    <div class="sec-h2row" style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #20303A;padding-bottom:18px;margin-bottom:40px;">
+      <h2 style="font-family:'Spectral',serif;font-weight:400;font-size:clamp(28px,3.4vw,44px);letter-spacing:-0.02em;color:#20303A;">Selección de trabajos 2026</h2>
+      <p style="font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#5f6b6f;">Proyectos — 06</p>
+    </div>
+    <div class="grid-3" style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px;">
+      <div class="pcard" style="animation:rise both;animation-timeline:view();animation-range:entry 0% cover 36%;">
+        <input type="checkbox" id="more-p1" class="pmore-cb" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
+        <div class="pcard-frame" style="position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#20303A;">
+          <div class="pcard-track pt2" style="display:flex;height:100%;width:400%;"><div style="flex:0 0 25%;height:100%;"><img src="assets/green-garden-panaderia.jpg" alt="Panadería Green Garden" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/green-garden-panaderia-sketch.jpg" alt="Panadería — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/green-garden-render.jpg" alt="Panadería Green Garden — render" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/green-garden-panaderia.jpg" alt="Panadería Green Garden" style="width:100%;height:100%;object-fit:cover;display:block;"></div></div></label></label></label></label></label></label>
+          <div class="pcard-info"><p style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#7FB0B8;">Rol · Diseño + documentación</p><p style="font-size:13px;line-height:1.55;color:#ECE7DD;">Mostradores, exhibidores y depósito. Despieces y optimización de placas listos para taller.</p></div>
+          <label for="more-p1" class="pcard-more"><span class="lc">Saber más</span><span class="lo">Cerrar</span></label>
+        </div>
+        <p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin:14px 0 6px;">Comercial</p><h3 style="font-family:'Sora',sans-serif;font-weight:600;font-size:16px;color:#20303A;">Local comercial — Panadería Green Garden</h3><p style="color:#4a565b;font-size:13px;line-height:1.5;margin-top:6px;">Equipamiento integral para local gastronómico: mostradores, exhibidores y mobiliario a medida.</p>
+      </div>
+      <div class="pcard" style="animation:rise both;animation-timeline:view();animation-range:entry 0% cover 36%;">
+        <input type="checkbox" id="more-p2" class="pmore-cb" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
+        <div class="pcard-frame" style="position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#20303A;">
+          <div class="pcard-track pt2" style="display:flex;height:100%;width:400%;"><div style="flex:0 0 25%;height:100%;"><img src="assets/escritorio-gamer.jpg" alt="Escritorio gamer con curva" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/escritorio-gamer-sketch.jpg" alt="Escritorio gamer — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/escritorio-gamer-render.jpg" alt="Escritorio gamer — render con medidas" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/escritorio-gamer.jpg" alt="Escritorio gamer con curva" style="width:100%;height:100%;object-fit:cover;display:block;"></div></div>
+          <div class="pcard-info"><p style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#7FB0B8;">Rol · Diseño + render</p><p style="font-size:13px;line-height:1.55;color:#ECE7DD;">Superficie curva continua, pasacables integrado y estructura pensada para producción.</p></div>
+          <label for="more-p2" class="pcard-more"><span class="lc">Saber más</span><span class="lo">Cerrar</span></label>
+        </div>
+        <p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin:14px 0 6px;">Residencial</p><h3 style="font-family:'Sora',sans-serif;font-weight:600;font-size:16px;color:#20303A;">Escritorio gamer con curva</h3><p style="color:#4a565b;font-size:13px;line-height:1.5;margin-top:6px;">Escritorio a medida con desarrollo de superficie curva, pensado para ergonomía y cableado oculto.</p>
+      </div>
+      <div class="pcard" style="animation:rise both;animation-timeline:view();animation-range:entry 0% cover 36%;">
+        <input type="checkbox" id="more-p3" class="pmore-cb" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
+        <div class="pcard-frame" style="position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#20303A;">
+          <div class="pcard-track pt2" style="display:flex;height:100%;width:400%;"><div style="flex:0 0 25%;height:100%;"><img src="assets/cocina-residencial.png" alt="Cocina residencial" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/cocina-residencial-sketch.jpg" alt="Cocina residencial — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/cocina-residencial.png" alt="Cocina residencial" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/cocina-residencial-sketch.jpg" alt="Cocina residencial — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div></div>
+          <div class="pcard-info"><p style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#7FB0B8;">Rol · Diseño + planos</p><p style="font-size:13px;line-height:1.55;color:#ECE7DD;">Distribución, selección de materiales y planos de fabricación a medida.</p></div>
+          <label for="more-p3" class="pcard-more"><span class="lc">Saber más</span><span class="lo">Cerrar</span></label>
+        </div>
+        <p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin:14px 0 6px;">Residencial</p><h3 style="font-family:'Sora',sans-serif;font-weight:600;font-size:16px;color:#20303A;">Cocina residencial</h3><p style="color:#4a565b;font-size:13px;line-height:1.5;margin-top:6px;">Diseño y desarrollo de cocina a medida: distribución, materiales y planos de fabricación.</p>
+      </div>
+      <div class="pcard" style="animation:rise both;animation-timeline:view();animation-range:entry 0% cover 40%;">
+        <input type="checkbox" id="more-p4" class="pmore-cb" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
+        <div class="pcard-frame" style="position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#20303A;">
+          <div class="pcard-track pt2" style="display:flex;height:100%;width:400%;"><div style="flex:0 0 25%;height:100%;"><img src="assets/tronador-3cocinas.jpg" alt="3 cocinas para edificio" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/tronador-3cocinas-sketch.jpg" alt="3 cocinas — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/tronador-3cocinas.jpg" alt="3 cocinas para edificio" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 25%;height:100%;"><img src="assets/tronador-3cocinas-sketch.jpg" alt="3 cocinas — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div></div>
+          <div class="pcard-info"><p style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#7FB0B8;">Rol · Tipologías + obra</p><p style="font-size:13px;line-height:1.55;color:#ECE7DD;">Módulos repetibles, estandarización de piezas y optimización de costos para desarrollo.</p></div>
+          <label for="more-p4" class="pcard-more"><span class="lc">Saber más</span><span class="lo">Cerrar</span></label>
+        </div>
+        <p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin:14px 0 6px;">Obra / Desarrollo</p><h3 style="font-family:'Sora',sans-serif;font-weight:600;font-size:16px;color:#20303A;">3 cocinas genéricas para edificio</h3><p style="color:#4a565b;font-size:13px;line-height:1.5;margin-top:6px;">Desarrollo de tipologías repetibles para obra: estandarización de piezas y optimización de costos.</p>
+      </div>
+      <div class="pcard" style="animation:rise both;animation-timeline:view();animation-range:entry 0% cover 40%;">
+        <input type="checkbox" id="more-p5" class="pmore-cb" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
+        <div class="pcard-frame" style="position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#20303A;">
+          <div class="pcard-track pt5" style="display:flex;height:100%;width:600%;"><div style="flex:0 0 16.667%;height:100%;"><img src="assets/escritorio-plegable.jpg" alt="Escritorio plegable" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 16.667%;height:100%;"><img src="assets/escritorio-plegable-sketch.jpg" alt="Escritorio plegable — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 16.667%;height:100%;"><img src="assets/escritorio-plegable-r1.png" alt="Escritorio plegable — render" style="width:100%;height:100%;object-fit:cover;object-position:center 5%;display:block;"></div><div style="flex:0 0 16.667%;height:100%;"><img src="assets/escritorio-plegable-r4.png" alt="Escritorio plegable — render" style="width:100%;height:100%;object-fit:cover;object-position:center 5%;display:block;"></div><div style="flex:0 0 16.667%;height:100%;"><img src="assets/escritorio-plegable.jpg" alt="Escritorio plegable" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 16.667%;height:100%;"><img src="assets/escritorio-plegable-sketch.jpg" alt="Escritorio plegable — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div></div>
+          <div class="pcard-info"><p style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#7FB0B8;">Rol · Diseño + optimización</p><p style="font-size:13px;line-height:1.55;color:#ECE7DD;">Todo el proyecto resuelto en 2 placas: guardado y estantería en distintas configuraciones.</p></div>
+          <label for="more-p5" class="pcard-more"><span class="lc">Saber más</span><span class="lo">Cerrar</span></label>
+        </div>
+        <p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin:14px 0 6px;">Residencial</p><h3 style="font-family:'Sora',sans-serif;font-weight:600;font-size:16px;color:#20303A;">Escritorio plegable</h3><p style="color:#4a565b;font-size:13px;line-height:1.5;margin-top:6px;">Diseño resuelto en no más de 2 placas por presupuesto: espacios de guardado y estantes que habilitan distintas configuraciones.</p>
+      </div>
+      <div class="pcard" style="animation:rise both;animation-timeline:view();animation-range:entry 0% cover 40%;">
+        <input type="checkbox" id="more-p6" class="pmore-cb" style="position:absolute;opacity:0;width:0;height:0;pointer-events:none;">
+        <div class="pcard-frame" style="position:relative;aspect-ratio:4/3;border-radius:12px;overflow:hidden;background:#20303A;">
+          <div class="pcard-track pt3b" style="display:flex;height:100%;width:500%;"><div style="flex:0 0 20%;height:100%;"><img src="assets/escritorio-ingenieria-sketch.jpg" alt="Escritorios ingeniería — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 20%;height:100%;"><img src="assets/escritorio-ingenieria.jpg" alt="Escritorios para ingeniería" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 20%;height:100%;"><img src="assets/escritorio-ingenieria-r2.jpg" alt="Escritorios ingeniería — render" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 20%;height:100%;"><img src="assets/escritorio-ingenieria-sketch.jpg" alt="Escritorios ingeniería — boceto" style="width:100%;height:100%;object-fit:cover;display:block;"></div><div style="flex:0 0 20%;height:100%;"><img src="assets/escritorio-ingenieria.jpg" alt="Escritorios para ingeniería" style="width:100%;height:100%;object-fit:cover;display:block;"></div></div>
+          <div class="pcard-info"><p style="font-family:'Space Mono',monospace;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:#7FB0B8;">Rol · Serie + montaje</p><p style="font-size:13px;line-height:1.55;color:#ECE7DD;">Puestos modulares para oficina técnica: modulación y montaje en planta.</p></div>
+          <label for="more-p6" class="pcard-more"><span class="lc">Saber más</span><span class="lo">Cerrar</span></label>
+        </div>
+        <p style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.1em;text-transform:uppercase;color:#2F6D7A;margin:14px 0 6px;">Corporativo</p><h3 style="font-family:'Sora',sans-serif;font-weight:600;font-size:16px;color:#20303A;">Escritorios para empresa de ingeniería</h3><p style="color:#4a565b;font-size:13px;line-height:1.5;margin-top:6px;">Puestos de trabajo para oficina técnica: series, modulación y montaje en planta.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- CONTACTO -->
+  <div id="contacto" class="sec-contact" style="padding:84px 48px;background:#1C2C33;scroll-margin-top:80px;">
+    <div class="sec-contact-grid" style="display:grid;grid-template-columns:1.15fr 1fr;gap:56px;align-items:center;">
+      <div>
+        <p style="font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#7FB0B8;margin-bottom:16px;">Contacto</p>
+        <h2 style="font-family:'Spectral',serif;font-weight:400;font-size:clamp(30px,3.6vw,50px);line-height:1.05;letter-spacing:-0.02em;color:#ECE7DD;margin-bottom:18px;">Trabajemos juntos<br>en tu proyecto.</h2>
+        <p style="color:rgba(236,231,221,.7);font-size:16px;line-height:1.65;max-width:440px;">Trabajo junto a estudios de arquitectura, interiorismo y mueblerías resolviendo el mobiliario de punta a punta: diseño, documentación y despiece listos para producir.</p>
+      </div>
+      <div style="background:rgba(236,231,221,.06);border:1px solid rgba(236,231,221,.16);border-radius:16px;padding:6px 24px;">
+        <a href="https://wa.me/5492216147541?text=Hola%20Nahuel%2C%20vi%20tu%20landing%20y%20quiero%20hablar%20sobre%20un%20proyecto." target="_blank" rel="noopener" class="contact-row" style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:20px 0;border-bottom:1px solid rgba(236,231,221,.12);"><span style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#7FB0B8;">WhatsApp</span><span style="color:#ECE7DD;font-size:15px;">221 - 6147541</span></a>
+        <a href="mailto:nahuelvaldez.di@gmail.com" class="contact-row" style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:20px 0;border-bottom:1px solid rgba(236,231,221,.12);"><span style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#7FB0B8;">Email</span><span style="color:#ECE7DD;font-size:15px;overflow-wrap:anywhere;">nahuelvaldez.di@gmail.com</span></a>
+        <div class="contact-row" style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:20px 0;"><span style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#7FB0B8;">Ubicación</span><span style="color:#ECE7DD;font-size:15px;">La Plata, Buenos Aires</span></div>
+        <!-- LinkedIn: descomentar cuando el perfil esté activo
+        <a href="https://www.linkedin.com/in/USUARIO" target="_blank" rel="noopener" style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:20px 0;border-top:1px solid rgba(236,231,221,.12);"><span style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#7FB0B8;">LinkedIn</span><span style="color:#ECE7DD;font-size:15px;">/nahuelvaldez</span></a>
+        -->
+      </div>
+    </div>
+    <p style="margin-top:56px;padding-top:22px;border-top:1px solid rgba(236,231,221,.1);font-family:'Space Mono',monospace;font-size:12px;color:rgba(236,231,221,.45);">© 2026 Nahuel Valdez — Diseñador industrial · La Plata, Buenos Aires, Argentina</p>
+  </div>
+
+</div>
+</x-dc>
+</body>
+</html>

@@ -122,7 +122,10 @@
   }
   window.addEventListener('resize', __scaleLaptop, { passive: true });
   window.addEventListener('load', __scaleLaptop);
-  setTimeout(__scaleLaptop, 0);
+  document.addEventListener('DOMContentLoaded', __scaleLaptop);
+  // 'load' espera a que carguen TODAS las imágenes de la página (varios segundos);
+  // con esto el tamaño correcto se aplica casi al instante, apenas existe el layout.
+  [0, 30, 100, 300, 700].forEach(function (ms) { setTimeout(__scaleLaptop, ms); });
   // Pantalla del hero: siempre la 1ra imagen de cada card de proyectos, en su mismo orden
   // (solo actualiza src/alt de las imágenes ya presentes en el template — nunca crea/quita nodos,
   // para no pisar el árbol que React administra)

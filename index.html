@@ -362,7 +362,18 @@
       overlay.className = 'pcard-focus-overlay';
       overlay.style.cssText = 'position:fixed;inset:0;background:rgba(32,48,58,.6);opacity:0;visibility:hidden;transition:opacity .35s ease;z-index:40;';
       document.body.appendChild(overlay);
-      overlay.addEventListener('click', function () { unfocus(); });
+      // El overlay tapa a las cards no enfocadas, así que un click sobre otra card
+      // llega primero acá. Si el click cae sobre otra card, se enfoca esa (cambiar
+      // de proyecto con un solo click); si cae en zona vacía, se cierra.
+      overlay.addEventListener('click', function (e) {
+        var cards = document.querySelectorAll('#proyectos .pcard'), hit = null;
+        for (var i = 0; i < cards.length; i++) {
+          var r = cards[i].getBoundingClientRect();
+          if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) { hit = cards[i]; break; }
+        }
+        if (hit && hit !== overlay.__current) focus(hit);
+        else unfocus();
+      });
       window.addEventListener('scroll', function () { if (overlay.__unfocus) overlay.__unfocus(); }, { passive: true });
     }
 
@@ -389,12 +400,25 @@
       })();
     }
 
+    // Resalta el texto de la card enfocada (título en color de acento, descripción
+    // más oscura); al desenfocar vuelve a los colores originales del markup. Se
+    // restauran valores explícitos (no '' ) porque el color original vive en el
+    // mismo atributo style inline y limpiarlo lo borraría.
+    function setTextEmphasis(card, on) {
+      var h3 = card.querySelector('h3');
+      var ps = card.querySelectorAll(':scope > p');
+      var desc = ps[ps.length - 1];
+      if (h3) h3.style.color = on ? '#2F6D7A' : '#20303A';
+      if (desc) desc.style.color = on ? '#20303A' : '#4a565b';
+    }
+
     function unfocus() {
       var current = overlay.__current;
       overlay.__current = null;
       overlay.style.opacity = '0';
       overlay.style.visibility = 'hidden';
       if (!current) return;
+      setTextEmphasis(current, false);
       var f = current.querySelector('.pcard-frame');
       if (f) { f.style.boxShadow = ''; if (f.__setFocus) f.__setFocus(false); }
       if (document.body.contains(current)) {
@@ -419,6 +443,7 @@
       card.style.setProperty('transition', 'none', 'important');
       card.style.animationName = 'none';
       animateFocus(card, true);
+      setTextEmphasis(card, true);
       var f = card.querySelector('.pcard-frame');
       if (f) { f.style.boxShadow = '0 30px 60px -20px rgba(28,44,51,.55)'; if (f.__setFocus) f.__setFocus(true); }
       overlay.style.opacity = '1';

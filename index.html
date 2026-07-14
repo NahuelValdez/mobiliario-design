@@ -382,7 +382,7 @@
     // esa combinación impide que un transform por CSS (aun con !important) o una
     // transición se apliquen. Animando el scale a mano y escribiéndolo con !important
     // en cada frame (con la animación `rise` apagada) el zoom sí toma y queda suave.
-    var GROW = 1.1, LIFT = 6, GROW_MS = 340, STEP_MS = 16;
+    var GROW = 1.28, LIFT = 10, GROW_MS = 340, STEP_MS = 16;
     function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
     // Anima el zoom de `p=0` (normal) a `p=1` (agrandado) o al revés. Se usa
     // setTimeout (no requestAnimationFrame) porque rAF se pausa en pestañas en
@@ -400,16 +400,19 @@
       })();
     }
 
-    // Resalta el texto de la card enfocada (título en color de acento, descripción
-    // más oscura); al desenfocar vuelve a los colores originales del markup. Se
-    // restauran valores explícitos (no '' ) porque el color original vive en el
-    // mismo atributo style inline y limpiarlo lo borraría.
-    function setTextEmphasis(card, on) {
-      var h3 = card.querySelector('h3');
+    // Spotlight de la card enfocada: la vuelve un tile oscuro con texto claro (blanco)
+    // para que resalte sobre el fondo atenuado. Al desenfocar revierte a los colores
+    // originales del markup — se restauran valores explícitos (no '') porque el color
+    // y el fondo originales viven en el mismo atributo style inline.
+    function setSpotlight(card, on) {
       var ps = card.querySelectorAll(':scope > p');
-      var desc = ps[ps.length - 1];
-      if (h3) h3.style.color = on ? '#2F6D7A' : '#20303A';
-      if (desc) desc.style.color = on ? '#20303A' : '#4a565b';
+      var eyebrow = ps[0], desc = ps[ps.length - 1], h3 = card.querySelector('h3');
+      card.style.background = on ? '#20303A' : '';
+      card.style.padding = on ? '14px' : '';
+      card.style.borderRadius = on ? '16px' : '';
+      if (eyebrow) eyebrow.style.color = on ? '#8FC7D4' : '#2F6D7A';
+      if (h3) h3.style.color = on ? '#FFFFFF' : '#20303A';
+      if (desc) desc.style.color = on ? '#D5CEBF' : '#4a565b';
     }
 
     function unfocus() {
@@ -418,7 +421,7 @@
       overlay.style.opacity = '0';
       overlay.style.visibility = 'hidden';
       if (!current) return;
-      setTextEmphasis(current, false);
+      setSpotlight(current, false);
       var f = current.querySelector('.pcard-frame');
       if (f) { f.style.boxShadow = ''; if (f.__setFocus) f.__setFocus(false); }
       if (document.body.contains(current)) {
@@ -443,7 +446,7 @@
       card.style.setProperty('transition', 'none', 'important');
       card.style.animationName = 'none';
       animateFocus(card, true);
-      setTextEmphasis(card, true);
+      setSpotlight(card, true);
       var f = card.querySelector('.pcard-frame');
       if (f) { f.style.boxShadow = '0 30px 60px -20px rgba(28,44,51,.55)'; if (f.__setFocus) f.__setFocus(true); }
       overlay.style.opacity = '1';

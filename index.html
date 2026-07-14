@@ -221,6 +221,24 @@
       window.__pcardManager = mgr;
     }
 
+    // Resetea a la 1ra imagen cualquier carrusel que quede completamente fuera de
+    // la vista (desktop: al abandonar la sección de proyectos; mobile: cuando una
+    // card desaparece de pantalla). Se registra una sola vez.
+    if (!window.__pcardResetInit) {
+      window.__pcardResetInit = true;
+      var resetOffscreen = function () {
+        var vh = window.innerHeight;
+        document.querySelectorAll('#proyectos .pcard-frame').forEach(function (frame) {
+          if (typeof frame.__resetCarousel !== 'function') return;
+          var r = frame.getBoundingClientRect();
+          var anyVisible = r.bottom > 0 && r.top < vh;
+          if (!anyVisible) frame.__resetCarousel();
+        });
+      };
+      window.addEventListener('scroll', resetOffscreen, { passive: true });
+      window.addEventListener('resize', resetOffscreen, { passive: true });
+    }
+
     document.querySelectorAll('#proyectos .pcard-frame').forEach(function (frame) {
       var track = frame.querySelector('.pcard-track');
       if (!track || track.__carouselInit) return;
@@ -280,6 +298,12 @@
       function stopAutoplay() { clearTimeout(timer); }
       function play() { if (active) return; active = true; scheduleNext(); }
       function stop() { if (!active) return; active = false; stopAutoplay(); }
+
+      // Vuelve el carrusel a la 1ra imagen (sin transición) y limpia el estado, para
+      // usarse cuando la card sale de la vista del usuario. Al reaparecer arranca
+      // de nuevo desde la 1ra imagen (hover en desktop / protagonismo en mobile).
+      function reset() { stopAutoplay(); active = false; manual = false; setPos(1, false); }
+      frame.__resetCarousel = reset;
 
       // Enfoque por click (desktop): fuerza la reproducción (más lenta) mientras
       // la card está enfocada, sin depender del hover. Al desenfocar, vuelve al

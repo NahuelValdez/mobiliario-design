@@ -270,8 +270,7 @@
       }
       setPos(1, false);
 
-      var focused = false;
-      frame.__setFocus = function (v) { focused = v; };
+      var focused = false, hovering = false;
 
       function scheduleNext() {
         clearTimeout(timer);
@@ -281,6 +280,15 @@
       function stopAutoplay() { clearTimeout(timer); }
       function play() { if (active) return; active = true; scheduleNext(); }
       function stop() { if (!active) return; active = false; stopAutoplay(); }
+
+      // Enfoque por click (desktop): fuerza la reproducción (más lenta) mientras
+      // la card está enfocada, sin depender del hover. Al desenfocar, vuelve al
+      // comportamiento por hover (sigue si el cursor está encima, si no se frena).
+      frame.__setFocus = function (v) {
+        focused = v;
+        if (v) { active = true; clearTimeout(timer); scheduleNext(); }   // reprograma con el timing lento
+        else if (!hovering) { stop(); } else { clearTimeout(timer); scheduleNext(); }
+      };
 
       if (mobile) {
         // Autoplay coordinado por protagonismo (uno a la vez)
@@ -325,8 +333,8 @@
         });
       } else {
         // Desktop: se reproduce al pasar el cursor por encima
-        frame.addEventListener('mouseenter', function () { play(); });
-        frame.addEventListener('mouseleave', function () { stop(); });
+        frame.addEventListener('mouseenter', function () { hovering = true; play(); });
+        frame.addEventListener('mouseleave', function () { hovering = false; if (!focused) stop(); });
       }
     });
   }
@@ -358,25 +366,59 @@
       window.addEventListener('scroll', function () { if (overlay.__unfocus) overlay.__unfocus(); }, { passive: true });
     }
 
+    // El zoom se anima por JS. Motivo: `.pcard` tiene a la vez una transición y la
+    // animación `rise` (animation-timeline:view()) sobre `transform`; en este motor
+    // esa combinación impide que un transform por CSS (aun con !important) o una
+    // transición se apliquen. Animando el scale a mano y escribiéndolo con !important
+    // en cada frame (con la animación `rise` apagada) el zoom sí toma y queda suave.
+    var GROW = 1.1, LIFT = 6, GROW_MS = 340, STEP_MS = 16;
+    function easeOut(t) { return 1 - Math.pow(1 - t, 3); }
+    // Anima el zoom de `p=0` (normal) a `p=1` (agrandado) o al revés. Se usa
+    // setTimeout (no requestAnimationFrame) porque rAF se pausa en pestañas en
+    // segundo plano; setTimeout mantiene la animación igual que el resto del sitio.
+    function animateFocus(card, toOpen, done) {
+      clearTimeout(card.__scaleTimer);
+      var t0 = performance.now();
+      (function step() {
+        var lin = Math.min(1, (performance.now() - t0) / GROW_MS);
+        var p = toOpen ? easeOut(lin) : 1 - easeOut(lin);
+        var s = 1 + (GROW - 1) * p;
+        card.style.setProperty('transform', 'translateY(' + (-LIFT * p) + 'px) scale(' + s + ')', 'important');
+        if (lin < 1) { card.__scaleTimer = setTimeout(step, STEP_MS); }
+        else if (done) done();
+      })();
+    }
+
     function unfocus() {
       var current = overlay.__current;
-      if (!current) return;
-      if (document.body.contains(current)) {
-        current.style.zIndex = '';
-        current.style.transform = '';
-        var f = current.querySelector('.pcard-frame');
-        if (f) { f.style.boxShadow = ''; if (f.__setFocus) f.__setFocus(false); }
-      }
       overlay.__current = null;
       overlay.style.opacity = '0';
       overlay.style.visibility = 'hidden';
+      if (!current) return;
+      var f = current.querySelector('.pcard-frame');
+      if (f) { f.style.boxShadow = ''; if (f.__setFocus) f.__setFocus(false); }
+      if (document.body.contains(current)) {
+        // Se anima de vuelta hasta scale(1) explícito y se deja ahí (no se remueve
+        // el transform: en este motor, quitar el inline no resetea el computado una
+        // vez que la card tuvo la animación `rise` + transición sobre `transform`).
+        // scale(1) es visualmente idéntico a la card normal.
+        animateFocus(current, false, function () {
+          current.style.zIndex = '';
+          current.style.setProperty('transform', 'translateY(0px) scale(1)', 'important');
+        });
+      }
     }
     function focus(card) {
       if (overlay.__current === card) return; // ya está enfocada: click no la cierra
       unfocus();
       overlay.__current = card;
       card.style.zIndex = '45';
-      card.style.transform = 'translateY(-6px) scale(1.1)';
+      // Apaga la transición y la animación `rise` sobre `transform`: en este motor,
+      // con ambas activas el transform (aun !important) no se aplica. Ya fuera de
+      // rango, `rise` sostiene transform:none, así que apagarla no genera salto.
+      card.style.setProperty('transition', 'none', 'important');
+      card.style.animationName = 'none';
+      animateFocus(card, true);
       var f = card.querySelector('.pcard-frame');
       if (f) { f.style.boxShadow = '0 30px 60px -20px rgba(28,44,51,.55)'; if (f.__setFocus) f.__setFocus(true); }
       overlay.style.opacity = '1';

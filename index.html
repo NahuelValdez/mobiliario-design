@@ -194,6 +194,7 @@
   function __initProjectCarousels() {
     if (!document.querySelector('#proyectos .pcard-frame')) return;
     var HOLD_MS = 2300;   // tiempo por imagen
+    var FOCUS_HOLD_MS = 4200; // tiempo por imagen cuando la card está enfocada (click, desktop)
     var TRANSITION_MS = 380;
     var mobile = window.matchMedia('(max-width:860px)').matches;
 
@@ -269,10 +270,13 @@
       }
       setPos(1, false);
 
+      var focused = false;
+      frame.__setFocus = function (v) { focused = v; };
+
       function scheduleNext() {
         clearTimeout(timer);
         if (manual || !active) return;
-        timer = setTimeout(function () { setPos(position + 1); scheduleNext(); }, HOLD_MS);
+        timer = setTimeout(function () { setPos(position + 1); scheduleNext(); }, focused ? FOCUS_HOLD_MS : HOLD_MS);
       }
       function stopAutoplay() { clearTimeout(timer); }
       function play() { if (active) return; active = true; scheduleNext(); }
@@ -333,6 +337,69 @@
   [0, 300, 800, 1500, 2500, 4000, 6000].forEach(function (ms) {
     setTimeout(__initProjectCarousels, ms);
   });
+
+  // Click en una card de proyecto (solo desktop): la agranda in-place y atenúa
+  // el resto del sitio con un overlay; el scroll sigue funcionando normalmente.
+  // Cierra solo con click afuera (en el overlay) — click en la card enfocada no cierra.
+  function __initProjectFocus() {
+    var section = document.getElementById('proyectos');
+    if (!section) return;
+    if (window.matchMedia('(max-width:860px)').matches) return; // solo desktop
+
+    // El overlay se crea una sola vez y se reutiliza (el runtime puede
+    // re-renderizar #proyectos, por eso no guardamos estado en la sección).
+    var overlay = document.querySelector('.pcard-focus-overlay');
+    if (!overlay) {
+      overlay = document.createElement('div');
+      overlay.className = 'pcard-focus-overlay';
+      overlay.style.cssText = 'position:fixed;inset:0;background:rgba(32,48,58,.6);opacity:0;visibility:hidden;transition:opacity .35s ease;z-index:40;';
+      document.body.appendChild(overlay);
+      overlay.addEventListener('click', function () { unfocus(); });
+      window.addEventListener('scroll', function () { if (overlay.__unfocus) overlay.__unfocus(); }, { passive: true });
+    }
+
+    function unfocus() {
+      var current = overlay.__current;
+      if (!current) return;
+      if (document.body.contains(current)) {
+        current.style.zIndex = '';
+        current.style.transform = '';
+        var f = current.querySelector('.pcard-frame');
+        if (f) { f.style.boxShadow = ''; if (f.__setFocus) f.__setFocus(false); }
+      }
+      overlay.__current = null;
+      overlay.style.opacity = '0';
+      overlay.style.visibility = 'hidden';
+    }
+    function focus(card) {
+      if (overlay.__current === card) return; // ya está enfocada: click no la cierra
+      unfocus();
+      overlay.__current = card;
+      card.style.zIndex = '45';
+      card.style.transform = 'translateY(-6px) scale(1.1)';
+      var f = card.querySelector('.pcard-frame');
+      if (f) { f.style.boxShadow = '0 30px 60px -20px rgba(28,44,51,.55)'; if (f.__setFocus) f.__setFocus(true); }
+      overlay.style.opacity = '1';
+      overlay.style.visibility = 'visible';
+    }
+    overlay.__unfocus = unfocus;
+
+    // Cada card se enlaza una sola vez, aunque el nodo sea nuevo tras un re-render.
+    section.querySelectorAll('.pcard').forEach(function (card) {
+      if (card.__focusBound) return;
+      card.__focusBound = true;
+      card.addEventListener('click', function () { focus(card); });
+    });
+  }
+  document.addEventListener('DOMContentLoaded', function () { __initProjectFocus(); });
+  [0, 300, 800, 1500, 2500, 4000, 6000].forEach(function (ms) {
+    setTimeout(__initProjectFocus, ms);
+  });
+  window.addEventListener('resize', function () {
+    var overlay = document.querySelector('.pcard-focus-overlay');
+    if (window.matchMedia('(max-width:860px)').matches) { if (overlay && overlay.__unfocus) overlay.__unfocus(); return; }
+    __initProjectFocus();
+  }, { passive: true });
 
 </script>
 </helmet>

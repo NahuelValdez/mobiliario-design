@@ -193,8 +193,10 @@
   //  · Desktop: se reproduce al pasar el cursor por encima (hover).
   function __initProjectCarousels() {
     if (!document.querySelector('#proyectos .pcard-frame')) return;
-    var HOLD_MS = 2300;   // tiempo por imagen
+    var HOLD_MS = 2300;   // tiempo por imagen (desktop, hover)
     var FOCUS_HOLD_MS = 4200; // tiempo por imagen cuando la card está enfocada (click, desktop)
+    var MOBILE_HOLD_MS = 4000; // tiempo por imagen en el slideshow de mobile (más pausado)
+    var MOBILE_FIRST_MS = 350; // 1er cambio tras tocar "Ver más": casi inmediato
     var TRANSITION_MS = 380;
     var mobile = window.matchMedia('(max-width:860px)').matches;
 
@@ -293,7 +295,8 @@
       function scheduleNext() {
         clearTimeout(timer);
         if (manual || !active) return;
-        timer = setTimeout(function () { setPos(position + 1); scheduleNext(); }, focused ? FOCUS_HOLD_MS : HOLD_MS);
+        var hold = mobile ? MOBILE_HOLD_MS : (focused ? FOCUS_HOLD_MS : HOLD_MS);
+        timer = setTimeout(function () { setPos(position + 1); scheduleNext(); }, hold);
       }
       function stopAutoplay() { clearTimeout(timer); }
       function play() { if (active) return; active = true; scheduleNext(); }
@@ -328,7 +331,14 @@
         verMas.style.cssText = 'position:absolute;bottom:10px;right:10px;z-index:4;font-family:\'Space Mono\',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#ECE7DD;background:rgba(32,48,58,.82);border:0;border-radius:999px;padding:7px 13px;cursor:pointer;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);';
         frame.appendChild(verMas);
         frame.__verMas = verMas;
-        function triggerPlay(e) { e.stopPropagation(); e.preventDefault(); verMas.style.display = 'none'; manual = false; active = false; play(); }
+        function triggerPlay(e) {
+          e.stopPropagation(); e.preventDefault();
+          verMas.style.display = 'none';
+          manual = false; active = true;
+          clearTimeout(timer);
+          // 1er cambio casi inmediato; de ahí en más, scheduleNext() usa el ritmo pausado de mobile.
+          timer = setTimeout(function () { setPos(position + 1); scheduleNext(); }, MOBILE_FIRST_MS);
+        }
         verMas.addEventListener('click', triggerPlay);
         verMas.addEventListener('touchstart', function (e) { e.stopPropagation(); }, { passive: true });
 

@@ -300,9 +300,12 @@
       function stop() { if (!active) return; active = false; stopAutoplay(); }
 
       // Vuelve el carrusel a la 1ra imagen (sin transición) y limpia el estado, para
-      // usarse cuando la card sale de la vista del usuario. Al reaparecer arranca
-      // de nuevo desde la 1ra imagen (hover en desktop / protagonismo en mobile).
-      function reset() { stopAutoplay(); active = false; manual = false; setPos(1, false); }
+      // usarse cuando la card sale de la vista del usuario. En mobile además vuelve a
+      // mostrar el botón "Ver más" (la card queda quieta hasta que se lo toque otra vez).
+      function reset() {
+        stopAutoplay(); active = false; manual = false; setPos(1, false);
+        if (frame.__verMas) frame.__verMas.style.display = '';
+      }
       frame.__resetCarousel = reset;
 
       // Enfoque por click (desktop): fuerza la reproducción (más lenta) mientras
@@ -315,8 +318,19 @@
       };
 
       if (mobile) {
-        // Autoplay coordinado por protagonismo (uno a la vez)
-        window.__pcardManager.entries.push({ frame: frame, play: play, stop: stop });
+        // Botón "Ver más": la card arranca quieta en la 1ra imagen; al tocarlo
+        // dispara el slideshow automático y el botón desaparece. Reaparece cuando
+        // la card vuelve a entrar en vista (vía reset()). Reemplaza el autoplay por
+        // protagonismo (que dependía de un umbral de visibilidad poco confiable).
+        var verMas = document.createElement('button');
+        verMas.type = 'button';
+        verMas.textContent = 'Ver más';
+        verMas.style.cssText = 'position:absolute;bottom:10px;right:10px;z-index:4;font-family:\'Space Mono\',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#ECE7DD;background:rgba(32,48,58,.82);border:0;border-radius:999px;padding:7px 13px;cursor:pointer;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);';
+        frame.appendChild(verMas);
+        frame.__verMas = verMas;
+        function triggerPlay(e) { e.stopPropagation(); e.preventDefault(); verMas.style.display = 'none'; manual = false; active = false; play(); }
+        verMas.addEventListener('click', triggerPlay);
+        verMas.addEventListener('touchstart', function (e) { e.stopPropagation(); }, { passive: true });
 
         frame.addEventListener('touchstart', function (e) {
           stopAutoplay();
@@ -502,7 +516,7 @@
 
   <!-- NAV -->
   <div class="sec-nav" style="position:sticky;top:0;z-index:50;display:flex;align-items:center;justify-content:space-between;padding:20px 48px;border-bottom:1px solid #20303A;background:rgba(236,231,221,.88);backdrop-filter:blur(8px);">
-    <a href="#inicio" class="nav-logo" style="font-family:'Spectral',serif;font-size:22px;font-weight:600;color:#20303A;letter-spacing:-0.01em;white-space:nowrap;">Nahuel<span style="color:#2F6D7A;">Valdez</span></a>
+    <a href="#inicio" class="nav-logo" style="font-family:'Spectral',serif;font-size:22px;font-weight:600;color:#20303A;letter-spacing:-0.01em;white-space:nowrap;">Nahuel<span style="color:#2F6D7A;">Valdez</span> <span style="font-style:italic;font-weight:400;color:#2F6D7A;">/</span> <span style="color:#20303A;">DI</span></a>
     <input type="checkbox" id="navtoggle" class="nav-cb" style="display:none;">
     <label for="navtoggle" class="nav-burger" aria-label="Abrir menú"><span></span><span></span><span></span></label>
     <div class="sec-navlinks" style="display:flex;gap:34px;align-items:center;font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">

@@ -311,12 +311,18 @@
       }
       frame.__resetCarousel = reset;
 
+      // Paso manual (flechas / teclado en la card enfocada): pasa a control manual
+      // permanente (como el swipe en mobile) — la card queda quieta donde se la deja
+      // hasta que el usuario la vuelva a mover; un nuevo enfoque reinicia el autoplay.
+      function step(dir) { manual = true; stopAutoplay(); active = false; setPos(position + dir); }
+      frame.__step = step;
+
       // Enfoque por click (desktop): fuerza la reproducción (más lenta) mientras
       // la card está enfocada, sin depender del hover. Al desenfocar, vuelve al
       // comportamiento por hover (sigue si el cursor está encima, si no se frena).
       frame.__setFocus = function (v) {
         focused = v;
-        if (v) { active = true; clearTimeout(timer); scheduleNext(); }   // reprograma con el timing lento
+        if (v) { manual = false; active = true; clearTimeout(timer); scheduleNext(); }  // enfoque nuevo: reinicia autoplay lento
         else if (!hovering) { stop(); } else { clearTimeout(timer); scheduleNext(); }
       };
 
@@ -423,6 +429,55 @@
         else unfocus();
       });
       window.addEventListener('scroll', function () { if (overlay.__unfocus) overlay.__unfocus(); }, { passive: true });
+      // Teclado: con una card enfocada, ← y → controlan su carrusel (control manual).
+      window.addEventListener('keydown', function (e) {
+        if (!overlay.__current) return;
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        var f = overlay.__current.querySelector('.pcard-frame');
+        if (f && f.__step) { e.preventDefault(); f.__step(e.key === 'ArrowRight' ? 1 : -1); }
+      });
+
+      // Flechas de navegación de la card enfocada (círculo oscuro semitransparente).
+      // Se crean UNA sola vez en el body (fuera del árbol que React administra — si
+      // se inyectaran dentro de la card, React crashea al reconciliar) y se posicionan
+      // sobre la card enfocada leyendo su rect. Al usarlas se pasa a control manual.
+      var __chevron = function (dir) {
+        return '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="' + (dir < 0 ? 'M15 6l-6 6 6 6' : 'M9 6l6 6-6 6') + '"/></svg>';
+      };
+      var __mkArrow = function (dir, label) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.setAttribute('aria-label', label);
+        b.style.cssText = 'position:fixed;width:38px;height:38px;display:flex;align-items:center;justify-content:center;z-index:46;color:#ECE7DD;background:rgba(32,48,58,.75);border:0;border-radius:50%;cursor:pointer;opacity:0;visibility:hidden;pointer-events:none;transition:opacity .25s ease,background .2s ease;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px);';
+        b.innerHTML = __chevron(dir);
+        b.addEventListener('mouseenter', function () { b.style.background = 'rgba(32,48,58,.95)'; });
+        b.addEventListener('mouseleave', function () { b.style.background = 'rgba(32,48,58,.75)'; });
+        b.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (!overlay.__current) return;
+          var f = overlay.__current.querySelector('.pcard-frame');
+          if (f && f.__step) f.__step(dir);
+        });
+        document.body.appendChild(b);
+        return b;
+      };
+      var __arrowPrev = __mkArrow(-1, 'Imagen anterior');
+      var __arrowNext = __mkArrow(1, 'Imagen siguiente');
+      overlay.__positionArrows = function () {
+        if (!overlay.__current) return;
+        var f = overlay.__current.querySelector('.pcard-frame');
+        if (!f) return;
+        var r = f.getBoundingClientRect(), cy = (r.top + r.height / 2 - 19) + 'px';
+        __arrowPrev.style.top = cy; __arrowPrev.style.left = (r.left + 10) + 'px';
+        __arrowNext.style.top = cy; __arrowNext.style.left = (r.right - 10 - 38) + 'px';
+      };
+      overlay.__showArrows = function (on) {
+        if (on) overlay.__positionArrows();
+        [__arrowPrev, __arrowNext].forEach(function (a) {
+          a.style.opacity = on ? '1' : '0';
+          a.style.visibility = on ? 'visible' : 'hidden';
+          a.style.pointerEvents = on ? 'auto' : 'none';
+        });
+      };
     }
 
     // El zoom se anima por JS. Motivo: `.pcard` tiene a la vez una transición y la
@@ -468,6 +523,7 @@
       overlay.__current = null;
       overlay.style.opacity = '0';
       overlay.style.visibility = 'hidden';
+      if (overlay.__showArrows) overlay.__showArrows(false);
       if (!current) return;
       setSpotlight(current, false);
       var f = current.querySelector('.pcard-frame');
@@ -499,6 +555,9 @@
       if (f) { f.style.boxShadow = '0 30px 60px -20px rgba(28,44,51,.55)'; if (f.__setFocus) f.__setFocus(true); }
       overlay.style.opacity = '1';
       overlay.style.visibility = 'visible';
+      // Las flechas aparecen cuando la card ya llegó a su tamaño final (evita que
+      // "salten" mientras crece), y se reposicionan sobre su rect definitivo.
+      setTimeout(function () { if (overlay.__current === card && overlay.__showArrows) overlay.__showArrows(true); }, GROW_MS);
     }
     overlay.__unfocus = unfocus;
 
@@ -517,6 +576,7 @@
     var overlay = document.querySelector('.pcard-focus-overlay');
     if (window.matchMedia('(max-width:860px)').matches) { if (overlay && overlay.__unfocus) overlay.__unfocus(); return; }
     __initProjectFocus();
+    if (overlay && overlay.__current && overlay.__positionArrows) overlay.__positionArrows();
   }, { passive: true });
 
 </script>

@@ -290,13 +290,24 @@
       }
       setPos(1, false);
 
+      // Avanza/retrocede un paso de forma segura para el loop infinito: si estamos
+      // parados sobre un clon (el borde), primero saltamos SIN transición a la imagen
+      // real equivalente (invisible, es la misma imagen) y recién ahí animamos el paso.
+      // Sin esto, avanzar rápido (flechas/teclado/swipe, antes de que corra el "snap"
+      // diferido) desbordaba el rango y la card quedaba vacía (se veía el fondo azul).
+      function advance(dir) {
+        if (position >= total - 1) { setPos(1, false); void track.offsetWidth; }
+        else if (position <= 0) { setPos(total - 2, false); void track.offsetWidth; }
+        setPos(position + dir);
+      }
+
       var focused = false, hovering = false;
 
       function scheduleNext() {
         clearTimeout(timer);
         if (manual || !active) return;
         var hold = mobile ? MOBILE_HOLD_MS : (focused ? FOCUS_HOLD_MS : HOLD_MS);
-        timer = setTimeout(function () { setPos(position + 1); scheduleNext(); }, hold);
+        timer = setTimeout(function () { advance(1); scheduleNext(); }, hold);
       }
       function stopAutoplay() { clearTimeout(timer); }
       function play() { if (active) return; active = true; scheduleNext(); }
@@ -314,7 +325,7 @@
       // Paso manual (flechas / teclado en la card enfocada): pasa a control manual
       // permanente (como el swipe en mobile) — la card queda quieta donde se la deja
       // hasta que el usuario la vuelva a mover; un nuevo enfoque reinicia el autoplay.
-      function step(dir) { manual = true; stopAutoplay(); active = false; setPos(position + dir); }
+      function step(dir) { manual = true; stopAutoplay(); active = false; advance(dir); }
       frame.__step = step;
 
       // Enfoque por click (desktop): fuerza la reproducción (más lenta) mientras
@@ -378,8 +389,8 @@
             manual = true; // queda en control manual: no vuelve a autoreproducirse
             var dx = e.changedTouches[0].clientX - startX;
             var threshold = frame.clientWidth * 0.15;
-            if (dx < -threshold) setPos(position + 1);
-            else if (dx > threshold) setPos(position - 1);
+            if (dx < -threshold) advance(1);
+            else if (dx > threshold) advance(-1);
             else setPos(position);
           } else {
             track.style.transition = TRANSITION_MS + 'ms cubic-bezier(.2,.7,.2,1)';

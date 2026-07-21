@@ -32,6 +32,20 @@
   @keyframes floaty { 0%,100% { transform: translateY(0) rotate(0deg); } 50% { transform: translateY(-16px) rotate(3deg); } }
   @keyframes floatIso { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-12px); } }
 
+  /* Secuencia de entrada del hero (solo desktop, se ve en cada carga).
+     El !important es necesario porque hero-eyebrow/title/lede ya traen un
+     animation inline (rise ligado a scroll) que sirve de fallback en mobile. */
+  @keyframes heroDropIn { from { opacity: 0; transform: translateY(-28px); } to { opacity: 1; transform: none; } }
+  @keyframes heroRiseUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
+  @keyframes heroLineIn { from { opacity: 0; } to { opacity: 1; } }
+  @media (min-width: 861px) {
+    .hero-title  { animation: heroDropIn .75s cubic-bezier(.16,1,.3,1) .05s both !important; }
+    .hero-eyebrow{ animation: heroRiseUp .65s cubic-bezier(.16,1,.3,1) .35s both !important; }
+    .hero-lede   { animation: heroRiseUp .75s cubic-bezier(.16,1,.3,1) .7s  both !important; }
+    .hero-rule   { animation: heroLineIn .6s ease 1.15s both; }
+    .hero-actions{ animation: heroRiseUp .75s cubic-bezier(.16,1,.3,1) 1.85s both; }
+  }
+
   /* Project cards — carousel manejado por JS (autoplay mobile / hover desktop) */
   .pcard { position: relative; transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s; }
   .pcard:hover { transform: translateY(-6px) scale(1.02); z-index: 3; }
@@ -45,7 +59,7 @@
   @keyframes ptrackLoop5 { 0%,19.412%{transform:translateX(-16.667%);} 20.147%,39.559%{transform:translateX(-33.333%);} 40.294%,59.706%{transform:translateX(-50%);} 60.441%,79.853%{transform:translateX(-66.667%);} 80.588%,100%{transform:translateX(-83.333%);} }
   @keyframes ptrack3 { 0%,18%{transform:translateX(0);} 26%,44%{transform:translateX(-33.333%);} 52%,100%{transform:translateX(-66.666%);} }
   @media (prefers-reduced-motion: reduce) { .pcard:hover .pt2, .pcard:hover .pt3 { animation: none; } }
-  @media (prefers-reduced-motion: reduce) { .hero-laptop, .hero-actions { animation: none !important; opacity: 1 !important; transform: none !important; } }
+  @media (prefers-reduced-motion: reduce) { .hero-laptop, .hero-actions, .hero-title, .hero-eyebrow, .hero-lede, .hero-rule { animation: none !important; opacity: 1 !important; transform: none !important; } }
 
 
   /* Nav hamburger (mobile) */
@@ -664,9 +678,10 @@
   <!-- HERO -->
   <div id="inicio" class="sec-hero" style="min-height:clamp(560px, calc(100vh - 146px), 820px);padding:60px 48px 44px;position:relative;overflow:hidden;display:grid;grid-template-columns:1.04fr 0.96fr;grid-template-areas:'text laptop' 'actions laptop';column-gap:40px;row-gap:24px;align-items:center;">
     <div style="grid-area:text;">
-      <p style="font-family:'Space Mono',monospace;font-size:13px;letter-spacing:0.16em;text-transform:uppercase;color:#2F6D7A;margin-bottom:22px;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 12%;">Diseñador industrial (UNLP) — <span style="white-space:nowrap;">La Plata, Argentina</span></p>
-      <h1 style="font-family:'Spectral',serif;font-weight:400;font-size:clamp(40px,4.8vw,64px);line-height:1.0;letter-spacing:-0.025em;color:#20303A;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 16%;">Desarrollo sistemas<br>de mobiliario <em style="font-style:italic;color:#2F6D7A;">/</em><br>proyectos a medida.</h1>
-      <p style="color:#4a565b;font-size:16px;line-height:1.7;max-width:540px;border-top:1px solid #20303A;padding-top:20px;margin-top:26px;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 20%;">Mi paso por la producción, la gestión de materiales y la instalación me permite crear proyectos donde el diseño y los procesos productivos se encuentran. Del concepto a la materialización.</p>
+      <p class="hero-eyebrow" style="font-family:'Space Mono',monospace;font-size:13px;letter-spacing:0.16em;text-transform:uppercase;color:#2F6D7A;margin-bottom:22px;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 12%;">Diseñador industrial (UNLP) — <span style="white-space:nowrap;">La Plata, Argentina</span></p>
+      <h1 class="hero-title" style="font-family:'Spectral',serif;font-weight:400;font-size:clamp(40px,4.8vw,64px);line-height:1.0;letter-spacing:-0.025em;color:#20303A;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 16%;">Desarrollo sistemas<br>de mobiliario <em style="font-style:italic;color:#2F6D7A;">/</em><br>proyectos a medida.</h1>
+      <div class="hero-rule" aria-hidden="true" style="height:1px;background:#20303A;max-width:540px;margin-top:26px;"></div>
+      <p class="hero-lede" style="color:#4a565b;font-size:16px;line-height:1.7;max-width:540px;margin-top:20px;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 20%;">Mi paso por la producción, la gestión de materiales y la instalación me permite crear proyectos donde el diseño y los procesos productivos se encuentran. Del concepto a la materialización.</p>
     </div>
     <div class="hero-visual" style="grid-area:laptop;display:flex;flex-direction:column;align-items:center;gap:52px;padding:16px 0;perspective:1300px;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 22%;">
       <div class="hero-laptop" style="width:100%;max-width:620px;animation:floatIso 8s ease-in-out infinite;position:relative;">

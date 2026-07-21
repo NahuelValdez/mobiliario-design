@@ -149,6 +149,13 @@
   }
 
   function drawBand(ctx, side, w, h, reach, active, cur, ink, accent) {
+    // Filas centradas verticalmente: mismo margen arriba y abajo en vez de
+    // arrancar fijo en rowGap/2 y dejar el resto suelto contra el borde
+    // inferior. El espaciado real se ajusta levemente (imperceptible) para
+    // que un número entero de filas quede perfectamente simétrico en h.
+    var rows = Math.max(1, Math.round(h / CFG.rowGap));
+    var actualGap = h / rows;
+
     for (var edgeDist = CFG.spacing / 2; edgeDist < reach; edgeDist += CFG.spacing) {
       var x = side === 'left' ? edgeDist : (w - edgeDist);
       var innerFactor = edgeDist / reach; // 0 en el borde, 1 hacia el centro
@@ -156,7 +163,8 @@
         ? CFG.edgeAlpha + (CFG.centerAlpha - CFG.edgeAlpha) * innerFactor
         : CFG.edgeAlpha;
 
-      for (var y = CFG.rowGap / 2; y < h; y += CFG.rowGap) {
+      for (var i = 0; i < rows; i++) {
+        var y = actualGap / 2 + i * actualGap;
         var dx = x - cur.x;
         var dy = y - cur.y;
         var angle = Math.atan2(dy, dx);

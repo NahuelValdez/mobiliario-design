@@ -121,6 +121,54 @@
     }
     __lastY = y;
   }, { passive: true });
+
+  // Subrayado del nav: sigue a la sección que se está viendo (Recorrido/Proyectos/
+  // Contacto), en vez de quedar fijo en "Contacto". Se activa la sección que cruza
+  // una línea imaginaria al 45% de la altura de la pantalla. Ojo: el runtime de esta
+  // plantilla re-renderiza el árbol después de la carga inicial, así que NUNCA se
+  // cachean referencias a los <a>/secciones — se consultan frescas del DOM en cada
+  // chequeo (igual que hace el resto del sitio con las cards). Cachearlas causaba que,
+  // tras un re-render, quedaran apuntando a nodos huérfanos: getBoundingClientRect()
+  // de un nodo huérfano da todo en cero, así que "cruzaban la línea" las tres
+  // secciones y ganaba siempre la última (Contacto quedaba pegado como activo).
+  var SECTION_IDS = ['recorrido', 'proyectos', 'contacto'];
+
+  function __navSetActive(id) {
+    SECTION_IDS.forEach(function (sid) {
+      var a = document.querySelector('.sec-navlinks a[href="#' + sid + '"]');
+      if (!a) return;
+      var on = sid === id;
+      a.style.color = on ? '#20303A' : '#5f6b6f';
+      a.style.borderBottom = on ? '2px solid #2F6D7A' : '0';
+      a.style.paddingBottom = on ? '2px' : '0';
+    });
+  }
+
+  function __navCurrentSection() {
+    var line = window.innerHeight * 0.45;
+    var atBottom = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 2;
+    if (atBottom) return SECTION_IDS[SECTION_IDS.length - 1]; // Contacto puede ser más corto que la pantalla
+    var current = null;
+    SECTION_IDS.forEach(function (sid) {
+      var el = document.getElementById(sid);
+      if (el && el.getBoundingClientRect().top <= line) current = sid; // la última que ya cruzó la línea
+    });
+    return current;
+  }
+
+  var __navSpyTicking = false;
+  function __navSpyOnScroll() {
+    if (__navSpyTicking) return;
+    __navSpyTicking = true;
+    requestAnimationFrame(function () { __navSetActive(__navCurrentSection()); __navSpyTicking = false; });
+  }
+  window.addEventListener('scroll', __navSpyOnScroll, { passive: true });
+  window.addEventListener('resize', __navSpyOnScroll, { passive: true });
+  // Reintentos: al conectar, el runtime puede no haber terminado de renderizar
+  // (scrollHeight chico todavía) — como no cacheamos nada, cada reintento simplemente
+  // vuelve a leer el DOM en vivo y corrige el estado sin arrastrar nada viejo.
+  [0, 300, 800, 1500, 2500].forEach(function (ms) { setTimeout(function () { __navSetActive(__navCurrentSection()); }, ms); });
+
   // Escalar el notebook del hero de forma responsive (scale() no acepta cqw)
   function __scaleLaptop() {
     document.querySelectorAll('.lap-box').forEach(function (b) {
@@ -676,7 +724,7 @@
   </div>
 
   <!-- OFERTA -->
-  <div class="sec-pad" style="padding:76px 48px;background:#E0DACB;border-top:1px solid #20303A;">
+  <div class="sec-pad" style="width:100vw;margin-left:calc(50% - 50vw);box-sizing:border-box;padding:76px max(48px, calc(48px + (100vw - 1240px)/2));background:#E0DACB;border-top:1px solid #20303A;">
     <div class="sec-h2row" style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #20303A;padding-bottom:18px;margin-bottom:40px;">
       <h2 style="font-family:'Spectral',serif;font-weight:400;font-size:clamp(28px,3.4vw,44px);letter-spacing:-0.02em;color:#20303A;">Capacidades técnicas y propuesta de valor</h2>
       <p style="font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#5f6b6f;">Soluciones — 06</p>
@@ -738,7 +786,7 @@
   </div>
 
   <!-- CONTACTO -->
-  <div id="contacto" class="sec-contact" style="padding:84px 48px;background:#1C2C33;scroll-margin-top:80px;">
+  <div id="contacto" class="sec-contact" style="width:100vw;margin-left:calc(50% - 50vw);box-sizing:border-box;padding:84px max(48px, calc(48px + (100vw - 1240px)/2));background:#1C2C33;scroll-margin-top:80px;">
     <div class="sec-contact-grid" style="display:grid;grid-template-columns:1.15fr 1fr;gap:56px;align-items:center;">
       <div>
         <p style="font-family:'Space Mono',monospace;font-size:12px;letter-spacing:0.16em;text-transform:uppercase;color:#7FB0B8;margin-bottom:16px;">Contacto</p>

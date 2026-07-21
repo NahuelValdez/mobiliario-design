@@ -187,19 +187,27 @@
     var w = c._w, h = c._h;
     ctx.clearRect(0, 0, w, h);
 
-    var dead = Math.max(0, (w - CFG.column) / 2);
+    // El canvas usa CSS width:100vw para "escapar" la columna centrada, pero
+    // 100vw incluye el ancho reservado por la scrollbar (a diferencia de
+    // clientWidth). El body tiene overflow-x:clip, así que la franja derecha,
+    // calculada sobre el ancho de más, quedaba recortada y desaparecía.
+    // Se usa clientWidth (sin scrollbar) para toda la matemática del patrón,
+    // dejando el excedente del buffer como margen muerto invisible.
+    var logicalW = document.documentElement.clientWidth;
+
+    var dead = Math.max(0, (logicalW - CFG.column) / 2);
     var reach = Math.min(CFG.reach, dead);
     if (reach < CFG.minReach) return;
 
     var rect = c.getBoundingClientRect();
-    var localX = mouse.moved ? mouse.x - rect.left : w / 2;
+    var localX = mouse.moved ? mouse.x - rect.left : logicalW / 2;
     var localY = mouse.moved ? mouse.y - rect.top : h / 2;
 
     var cur = inst.cur;
     if (cur.x === null) { cur.x = localX; cur.y = localY; }
 
     // Activo solo si el cursor realmente está sobre esta franja (con margen).
-    var withinX = localX > -CFG.radius && localX < w + CFG.radius;
+    var withinX = localX > -CFG.radius && localX < logicalW + CFG.radius;
     var withinY = localY > -CFG.radius && localY < h + CFG.radius;
     var active = mouse.moved && withinX && withinY && !REDUCED;
 
@@ -212,8 +220,8 @@
 
     ctx.lineWidth = 1;
     ctx.lineCap = 'round';
-    drawBand(ctx, 'left', w, h, reach, active, cur, inst.spec.ink, inst.spec.accent);
-    drawBand(ctx, 'right', w, h, reach, active, cur, inst.spec.ink, inst.spec.accent);
+    drawBand(ctx, 'left', logicalW, h, reach, active, cur, inst.spec.ink, inst.spec.accent);
+    drawBand(ctx, 'right', logicalW, h, reach, active, cur, inst.spec.ink, inst.spec.accent);
   }
 
   var instances = SECTIONS.map(makeInstance);

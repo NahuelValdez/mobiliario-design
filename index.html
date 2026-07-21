@@ -37,13 +37,12 @@
      animation inline (rise ligado a scroll) que sirve de fallback en mobile. */
   @keyframes heroDropIn { from { opacity: 0; transform: translateY(-28px); } to { opacity: 1; transform: none; } }
   @keyframes heroRiseUp { from { opacity: 0; transform: translateY(28px); } to { opacity: 1; transform: none; } }
-  @keyframes heroLineIn { from { opacity: 0; } to { opacity: 1; } }
   @media (min-width: 861px) {
     .hero-title  { animation: heroDropIn 1s   cubic-bezier(.16,1,.3,1) .1s  both !important; }
-    .hero-eyebrow{ animation: heroRiseUp .9s  cubic-bezier(.16,1,.3,1) .6s  both !important; }
+    .hero-eyebrow{ animation: heroDropIn .9s  cubic-bezier(.16,1,.3,1) .6s  both !important; }
     .hero-lede   { animation: heroRiseUp 1s   cubic-bezier(.16,1,.3,1) 1.2s both !important; }
-    .hero-rule   { animation: heroLineIn .8s  ease 1.9s both; }
-    .hero-actions{ animation: heroRiseUp 1s   cubic-bezier(.16,1,.3,1) 2.9s both; }
+    .hero-rule   { animation: heroRiseUp .8s  cubic-bezier(.16,1,.3,1) 1.9s both; }
+    .hero-actions{ animation: heroRiseUp 1s   cubic-bezier(.16,1,.3,1) 4s   both; }
   }
 
   /* Project cards — carousel manejado por JS (autoplay mobile / hover desktop) */

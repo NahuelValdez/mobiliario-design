@@ -46,7 +46,12 @@
   };
 
   // Secciones habilitadas, cada una con su propia paleta (ink/accent en "r,g,b").
+  // `mount`: si se define, el canvas se inserta ahí (no dentro de la sección)
+  // y se sincroniza en cada frame con la posición/alto de la sección real.
+  // Necesario para "inicio", que tiene overflow:hidden (recortaría el canvas
+  // al ancho de la columna en vez de llegar a los márgenes reales).
   var SECTIONS = [
+    { id: 'inicio', ink: '32,48,58', accent: '47,109,122', mount: '[data-screen-label]' }, // fondo claro
     { id: 'capacidades', ink: '32,48,58', accent: '47,109,122' },   // fondo claro #E0DACB
     { id: 'contacto', ink: '236,231,221', accent: '127,176,184' }   // fondo oscuro #1C2C33
   ];
@@ -64,16 +69,38 @@
     return { spec: spec, cur: { x: null, y: null }, canvasId: 'nv-ambient-' + spec.id };
   }
 
+  // CSS común: se estira a los 100vw reales sin importar el ancho del
+  // contenedor (idioma clásico para "escapar" de una columna centrada).
+  var FULL_BLEED_CSS = 'position:absolute;left:50%;width:100vw;margin-left:-50vw;' +
+    'pointer-events:none;display:block;';
+
   function ensureCanvas(inst) {
     var section = document.getElementById(inst.spec.id);
     if (!section) return null;
     var c = document.getElementById(inst.canvasId);
+
+    if (inst.spec.mount) {
+      var mount = document.querySelector(inst.spec.mount);
+      if (!mount) return null;
+      if (!c) {
+        c = document.createElement('canvas');
+        c.id = inst.canvasId;
+        c.setAttribute('aria-hidden', 'true');
+        c.style.cssText = FULL_BLEED_CSS; // top/height se fijan por frame.
+        mount.insertBefore(c, section);
+        c._w = c._h = c._dpr = 0;
+      } else if (c.parentNode !== mount || c.nextElementSibling !== section) {
+        // El runtime movió/recreó la sección: reinsertar justo antes de ella.
+        mount.insertBefore(c, section);
+      }
+      return c;
+    }
+
     if (!c) {
       c = document.createElement('canvas');
       c.id = inst.canvasId;
       c.setAttribute('aria-hidden', 'true');
-      c.style.cssText = 'position:absolute;top:0;left:0;right:0;bottom:0;' +
-        'width:100%;height:100%;pointer-events:none;display:block;';
+      c.style.cssText = FULL_BLEED_CSS + 'top:0;bottom:0;';
       section.insertBefore(c, section.firstChild);
       c._w = c._h = c._dpr = 0;
     } else if (c.parentNode !== section) {
@@ -86,8 +113,21 @@
     return c;
   }
 
+  // Para canvases "mount": alinea top/height con la sección real, ya que no
+  // vive dentro de ella (necesario para escapar su overflow:hidden).
+  function syncMountedPosition(inst, c) {
+    if (!inst.spec.mount) return;
+    var section = document.getElementById(inst.spec.id);
+    var mount = c.parentNode;
+    if (!section || !mount) return;
+    var secRect = section.getBoundingClientRect();
+    var mountRect = mount.getBoundingClientRect();
+    c.style.top = (secRect.top - mountRect.top) + 'px';
+    c.style.height = secRect.height + 'px';
+  }
+
   function sizeCanvas(c) {
-    var rect = c.parentNode.getBoundingClientRect();
+    var rect = c.getBoundingClientRect();
     var dpr = window.devicePixelRatio || 1;
     var w = Math.round(rect.width);
     var h = Math.round(rect.height);
@@ -133,6 +173,7 @@
   function drawInstance(inst) {
     var c = ensureCanvas(inst);
     if (!c) return;
+    syncMountedPosition(inst, c);
     sizeCanvas(c);
     var ctx = c.getContext('2d');
     var w = c._w, h = c._h;

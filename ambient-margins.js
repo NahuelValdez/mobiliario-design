@@ -33,7 +33,7 @@
     minReach: 40,       // margen muerto mínimo por lado para mostrar la trama
     column: 1240,       // ancho de la columna centrada del sitio
     segLen: 4.3,        // media-longitud del trazo
-    scrollFactor: 1,    // 1 = scrollea 1:1 con la página; <1 = parallax más lento
+    scrollFactor: 0.65, // 1 = scrollea 1:1 con la página; <1 = parallax más lento
     interval: 33        // ~30fps
   };
 

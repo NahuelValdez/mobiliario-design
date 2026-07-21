@@ -22,11 +22,15 @@
 
   var CFG = {
     id: 'nv-ambient-margins',
-    spacing: 32,        // separación de la grilla
+    spacing: 32,        // separación horizontal entre columnas (fija)
+    rowGap: 32,         // separación vertical entre trazos
+    reach: 280,         // hasta dónde se estiran las columnas hacia el centro
     ease: 0.16,         // inercia del seguimiento (0..1)
-    radius: 100,        // radio (px) donde el trazo se acentúa hacia el cursor
-    fieldWidth: 120,    // ancho máx de cada franja
-    minDead: 56,        // espacio muerto mínimo por lado para mostrar la trama
+    radius: 110,        // radio (px) donde el trazo se acentúa hacia el cursor
+    gradient: true,     // atenuar hacia el centro / nítido en el borde
+    edgeAlpha: 0.32,    // opacidad de la columna más externa
+    centerAlpha: 0.04,  // opacidad de la columna más interna
+    minReach: 40,       // margen muerto mínimo por lado para mostrar la trama
     column: 1240,       // ancho de la columna centrada del sitio
     segLen: 4.3,        // media-longitud del trazo
     interval: 33        // ~30fps
@@ -63,7 +67,8 @@
 
   function sizeCanvas(c) {
     var dpr = window.devicePixelRatio || 1;
-    var w = window.innerWidth;
+    // clientWidth excluye la barra de scroll: mantiene ambos márgenes simétricos.
+    var w = document.documentElement.clientWidth;
     var h = window.innerHeight;
     if (c._w !== w || c._h !== h || c._dpr !== dpr) {
       c.width = Math.round(w * dpr);
@@ -76,9 +81,18 @@
     }
   }
 
-  function drawBand(ctx, x0, x1, w, h, active) {
-    for (var x = x0 + CFG.spacing / 2; x < x1; x += CFG.spacing) {
-      for (var y = CFG.spacing / 2; y < h; y += CFG.spacing) {
+  // Dibuja una franja. Las columnas parten del borde exterior y avanzan hacia
+  // el centro con separación fija (CFG.spacing) hasta `reach`. El degradé
+  // atenúa las columnas internas y deja nítidas las del borde.
+  function drawBand(ctx, side, w, h, reach, active) {
+    for (var edgeDist = CFG.spacing / 2; edgeDist < reach; edgeDist += CFG.spacing) {
+      var x = side === 'left' ? edgeDist : (w - edgeDist);
+      var innerFactor = edgeDist / reach; // 0 en el borde, 1 hacia el centro
+      var baseA = CFG.gradient
+        ? CFG.edgeAlpha + (CFG.centerAlpha - CFG.edgeAlpha) * innerFactor
+        : CFG.edgeAlpha;
+
+      for (var y = CFG.rowGap / 2; y < h; y += CFG.rowGap) {
         var dx = x - cur.x;
         var dy = y - cur.y;
         var angle = Math.atan2(dy, dx);
@@ -89,8 +103,8 @@
         }
         var cx = Math.cos(angle) * CFG.segLen;
         var cy = Math.sin(angle) * CFG.segLen;
-        var alpha = 0.16 + near * 0.7;
-        var col = near > 0.08 ? ACCENT : INK;
+        var alpha = Math.min(0.95, baseA + near * 0.7);
+        var col = near > 0.1 ? ACCENT : INK;
         ctx.strokeStyle = 'rgba(' + col + ',' + alpha.toFixed(3) + ')';
         ctx.beginPath();
         ctx.moveTo(x - cx, y - cy);
@@ -104,14 +118,15 @@
     var c = ensureCanvas();
     sizeCanvas(c);
     var ctx = c.getContext('2d');
-    var w = window.innerWidth;
-    var h = window.innerHeight;
+    var w = c._w;
+    var h = c._h;
     ctx.clearRect(0, 0, w, h);
 
-    // Espacio muerto a cada lado de la columna centrada.
+    // Espacio muerto a cada lado de la columna centrada; el alcance se recorta
+    // a ese espacio para no invadir nunca el contenido.
     var dead = Math.max(0, (w - CFG.column) / 2);
-    var fieldW = Math.min(CFG.fieldWidth, dead);
-    if (fieldW < CFG.minDead) return; // pantalla angosta: no hay lugar, se omite.
+    var reach = Math.min(CFG.reach, dead);
+    if (reach < CFG.minReach) return; // pantalla angosta: no hay lugar.
 
     // Objetivo del seguimiento: el mouse si ya se movió, si no el centro.
     var tx = mouse.moved ? mouse.x : w / 2;
@@ -128,8 +143,8 @@
 
     ctx.lineWidth = 1;
     ctx.lineCap = 'round';
-    drawBand(ctx, 0, fieldW, w, h, active);
-    drawBand(ctx, w - fieldW, w, w, h, active);
+    drawBand(ctx, 'left', w, h, reach, active);
+    drawBand(ctx, 'right', w, h, reach, active);
   }
 
   function loop() {

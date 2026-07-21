@@ -50,8 +50,10 @@
   /* Nav hamburger (mobile) */
   .nav-burger { display: none; flex-direction: column; justify-content: center; gap: 5px; width: 34px; height: 34px; cursor: pointer; }
   .nav-burger span { display: block; height: 2px; width: 22px; background: #20303A; transition: transform .3s, opacity .3s; }
-  /* Navbar auto-ocultable al scrollear (el translate solo aplica en mobile, ver media query) */
+  /* Navbar auto-ocultable al scrollear (desktop y mobile): baja del hero → se oculta
+     hacia arriba; scroll hacia arriba → reaparece. La clase la togglea el JS de scroll. */
   .sec-nav { transition: transform .35s ease; }
+  .sec-nav.nav-hidden { transform: translateY(-100%); }
   /* Entrada en cascada del hero (mobile): sube desde abajo con fade */
   @keyframes heroLiftIn { from { opacity: 0; transform: translateY(46px); } to { opacity: 1; transform: translateY(0); } }
   /* Laptop: recorrido largo + desaceleración pronunciada (entra lenta y frena al final) */
@@ -644,7 +646,7 @@
 <div data-screen-label="Landing Nahuel Valdez" style="max-width:1240px;margin:0 auto;background:#ECE7DD;">
 
   <!-- NAV -->
-  <div class="sec-nav" style="position:sticky;top:0;z-index:50;width:100vw;margin-left:calc(50% - 50vw);box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:20px max(48px, calc(48px + (100vw - 1240px)/2));border-bottom:1px solid #20303A;background:rgba(236,231,221,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);">
+  <div class="sec-nav" style="position:sticky;top:0;z-index:50;width:100vw;margin-left:calc(50% - 50vw);box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:20px max(48px, calc(48px + (100vw - 1240px)/2));border-bottom:1px solid #20303A;background:rgba(236,231,221,.7);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);">
     <a href="#inicio" class="nav-logo" style="font-family:'Spectral',serif;font-size:22px;font-weight:600;color:#20303A;letter-spacing:-0.01em;white-space:nowrap;">Nahuel<span style="color:#2F6D7A;">Valdez</span> <span style="font-style:italic;font-weight:400;color:#2F6D7A;">/</span> <span style="color:#20303A;">DI</span></a>
     <input type="checkbox" id="navtoggle" class="nav-cb" style="display:none;">
     <label for="navtoggle" class="nav-burger" aria-label="Abrir menú"><span></span><span></span><span></span></label>

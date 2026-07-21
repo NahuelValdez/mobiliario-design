@@ -100,7 +100,7 @@
       c = document.createElement('canvas');
       c.id = inst.canvasId;
       c.setAttribute('aria-hidden', 'true');
-      c.style.cssText = FULL_BLEED_CSS + 'top:0;bottom:0;';
+      c.style.cssText = FULL_BLEED_CSS; // top/height se fijan por frame.
       section.insertBefore(c, section.firstChild);
       c._w = c._h = c._dpr = 0;
     } else if (c.parentNode !== section) {
@@ -113,16 +113,24 @@
     return c;
   }
 
-  // Para canvases "mount": alinea top/height con la sección real, ya que no
-  // vive dentro de ella (necesario para escapar su overflow:hidden).
-  function syncMountedPosition(inst, c) {
-    if (!inst.spec.mount) return;
+  // Fija top/height del canvas por JS en cada frame, con la altura REAL de
+  // la sección en ese instante. Necesario porque <canvas> es un elemento
+  // "reemplazado": top:0;bottom:0 sin height explícito NO lo estira como a
+  // un div — usa su tamaño intrínseco (el atributo height, fijado la última
+  // vez que se llamó sizeCanvas), que queda desactualizado si la sección
+  // cambia de alto después de esa medición inicial (webfonts, reflow, etc.),
+  // pisando visualmente la sección siguiente. Fijar height explícito cada
+  // frame evita ese desfase por completo.
+  function syncPosition(inst, c) {
     var section = document.getElementById(inst.spec.id);
-    var mount = c.parentNode;
-    if (!section || !mount) return;
+    if (!section) return;
     var secRect = section.getBoundingClientRect();
-    var mountRect = mount.getBoundingClientRect();
-    c.style.top = (secRect.top - mountRect.top) + 'px';
+    if (inst.spec.mount) {
+      var mountRect = c.parentNode.getBoundingClientRect();
+      c.style.top = (secRect.top - mountRect.top) + 'px';
+    } else {
+      c.style.top = '0px';
+    }
     c.style.height = secRect.height + 'px';
   }
 
@@ -173,7 +181,7 @@
   function drawInstance(inst) {
     var c = ensureCanvas(inst);
     if (!c) return;
-    syncMountedPosition(inst, c);
+    syncPosition(inst, c);
     sizeCanvas(c);
     var ctx = c.getContext('2d');
     var w = c._w, h = c._h;

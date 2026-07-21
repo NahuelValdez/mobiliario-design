@@ -72,7 +72,7 @@
     .nav-cb:checked ~ .nav-burger span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
     .nav-cb:checked ~ .nav-burger span:nth-child(2) { opacity: 0; }
     .nav-cb:checked ~ .nav-burger span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
-    .sec-hero { grid-template-columns: 1fr !important; grid-template-areas: 'text' 'laptop' 'actions' !important; padding: 34px 22px 30px !important; gap: 18px !important; }
+    .sec-hero { min-height: auto !important; grid-template-columns: 1fr !important; grid-template-areas: 'text' 'laptop' 'actions' !important; padding: 34px 22px 30px !important; gap: 18px !important; }
     /* Navbar se oculta hacia arriba al scrollear (clase toggled por JS) */
     .sec-nav.nav-hidden { transform: translateY(-100%); }
     /* Hero: entrada en cascada (laptop primero, botón después), más arriba para que entre completa */
@@ -661,7 +661,7 @@
   </div>
 
   <!-- HERO -->
-  <div id="inicio" class="sec-hero" style="padding:60px 48px 44px;position:relative;overflow:hidden;display:grid;grid-template-columns:1.04fr 0.96fr;grid-template-areas:'text laptop' 'actions laptop';column-gap:40px;row-gap:24px;align-items:center;">
+  <div id="inicio" class="sec-hero" style="min-height:clamp(560px, calc(100vh - 146px), 820px);padding:60px 48px 44px;position:relative;overflow:hidden;display:grid;grid-template-columns:1.04fr 0.96fr;grid-template-areas:'text laptop' 'actions laptop';column-gap:40px;row-gap:24px;align-items:center;">
     <div style="grid-area:text;">
       <p style="font-family:'Space Mono',monospace;font-size:13px;letter-spacing:0.16em;text-transform:uppercase;color:#2F6D7A;margin-bottom:22px;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 12%;">Diseñador industrial (UNLP) — <span style="white-space:nowrap;">La Plata, Argentina</span></p>
       <h1 style="font-family:'Spectral',serif;font-weight:400;font-size:clamp(40px,4.8vw,64px);line-height:1.0;letter-spacing:-0.025em;color:#20303A;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 16%;">Desarrollo sistemas<br>de mobiliario <em style="font-style:italic;color:#2F6D7A;">/</em><br>proyectos a medida.</h1>

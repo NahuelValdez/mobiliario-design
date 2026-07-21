@@ -33,6 +33,7 @@
     minReach: 40,       // margen muerto mínimo por lado para mostrar la trama
     column: 1240,       // ancho de la columna centrada del sitio
     segLen: 4.3,        // media-longitud del trazo
+    scrollFactor: 1,    // 1 = scrollea 1:1 con la página; <1 = parallax más lento
     interval: 33        // ~30fps
   };
 
@@ -84,7 +85,11 @@
   // Dibuja una franja. Las columnas parten del borde exterior y avanzan hacia
   // el centro con separación fija (CFG.spacing) hasta `reach`. El degradé
   // atenúa las columnas internas y deja nítidas las del borde.
-  function drawBand(ctx, side, w, h, reach, active) {
+  function drawBand(ctx, side, w, h, reach, active, off) {
+    // Filas visibles ancladas al documento: solo se dibuja el rango en pantalla.
+    var kStart = Math.ceil((off - CFG.rowGap / 2) / CFG.rowGap);
+    var kEnd = Math.floor((off + h - CFG.rowGap / 2) / CFG.rowGap);
+
     for (var edgeDist = CFG.spacing / 2; edgeDist < reach; edgeDist += CFG.spacing) {
       var x = side === 'left' ? edgeDist : (w - edgeDist);
       var innerFactor = edgeDist / reach; // 0 en el borde, 1 hacia el centro
@@ -92,7 +97,8 @@
         ? CFG.edgeAlpha + (CFG.centerAlpha - CFG.edgeAlpha) * innerFactor
         : CFG.edgeAlpha;
 
-      for (var y = CFG.rowGap / 2; y < h; y += CFG.rowGap) {
+      for (var k = kStart; k <= kEnd; k++) {
+        var y = (k * CFG.rowGap + CFG.rowGap / 2) - off; // posición en pantalla
         var dx = x - cur.x;
         var dy = y - cur.y;
         var angle = Math.atan2(dy, dx);
@@ -141,10 +147,14 @@
       cur.x = tx; cur.y = ty;
     }
 
+    // Desplazamiento del patrón según el scroll (anclado al documento).
+    var scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+    var off = scrollY * CFG.scrollFactor;
+
     ctx.lineWidth = 1;
     ctx.lineCap = 'round';
-    drawBand(ctx, 'left', w, h, reach, active);
-    drawBand(ctx, 'right', w, h, reach, active);
+    drawBand(ctx, 'left', w, h, reach, active, off);
+    drawBand(ctx, 'right', w, h, reach, active, off);
   }
 
   function loop() {

@@ -58,6 +58,11 @@
        propio ciclo hacia arriba, y como se combinan, el movimiento se lee
        continuo en vez de "sube, frena del todo, y recién ahí flota". */
     .hero-laptop { animation: floatIso 8s ease-in-out .55s infinite !important; }
+    /* Hover en la notebook (solo desktop): el link crece; floatIso sigue
+       flotando adentro sin pisarse -- son transforms de elementos distintos
+       que se combinan (padre escala, hijo flota). */
+    .hero-laptop-link { transition: transform .3s ease; }
+    .hero-laptop-link:hover { transform: scale(1.035); }
   }
 
   /* Project cards — carousel manejado por JS (autoplay mobile / hover desktop) */
@@ -704,7 +709,8 @@
       <p class="hero-lede" style="color:#4a565b;font-size:16px;line-height:1.7;max-width:540px;margin-top:20px;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 20%;">Mi paso por la producción, la gestión de materiales y la instalación me permite crear proyectos donde el diseño y los procesos productivos se encuentran. Del concepto a la materialización.</p>
     </div>
     <div class="hero-visual" style="grid-area:laptop;display:flex;flex-direction:column;align-items:center;gap:52px;padding:16px 0;perspective:1300px;animation:rise both;animation-timeline:view();animation-range:entry 0% cover 22%;">
-      <div class="hero-laptop" style="width:100%;max-width:620px;animation:floatIso 8s ease-in-out infinite;position:relative;">
+      <a href="#proyectos" class="hero-laptop-link" aria-label="Ver proyectos" style="display:block;width:100%;max-width:620px;">
+      <div class="hero-laptop" style="width:100%;animation:floatIso 8s ease-in-out infinite;position:relative;">
         <div class="lap-box" style="position:relative;width:100%;aspect-ratio:3/2;">
           <div style="position:absolute;top:0;left:0;width:1200px;height:800px;transform-origin:top left;transform:scale(var(--laps,0.264));">
             <img src="assets/laptop-mockup.png" alt="Notebook con proyectos de Nahuel Valdez" style="position:absolute;top:0;left:0;width:1200px;height:800px;">
@@ -718,6 +724,7 @@
           </div>
         </div>
       </div>
+      </a>
     </div>
     <div class="hero-actions" style="grid-area:actions;display:flex;gap:12px;flex-wrap:wrap;justify-content:flex-start;">
       <a href="#contacto" class="hero-cta-1" style="font-family:'Space Mono',monospace;font-size:13px;letter-spacing:0.04em;background:#20303A;color:#ECE7DD;padding:16px 26px;border-radius:999px;transition:transform .2s,background .2s;" style-hover="transform:translateY(-3px);background:#2F6D7A;">Hablemos</a>

@@ -87,6 +87,25 @@
     .sec-navlinks > a:hover { transform: scale(1.08); }
   }
 
+  /* Contacto: el dato es link (abre WhatsApp / mail); el ícono al lado copia. */
+  .cr-actions { display: flex; align-items: center; gap: 12px; }
+  .cr-value { color: #ECE7DD; font-size: 15px; overflow-wrap: anywhere; transition: color .2s; }
+  .cr-value:hover { color: #7FB0B8; }
+  .copy-ico {
+    flex-shrink: 0; width: 30px; height: 30px; display: grid; place-items: center;
+    background: transparent; border: 1px solid rgba(236,231,221,.16); border-radius: 8px;
+    color: #7FB0B8; cursor: pointer; opacity: .55;
+    transition: opacity .2s, background .2s, border-color .2s, color .2s;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .copy-ico:hover { opacity: 1; background: rgba(127,176,184,.14); border-color: #7FB0B8; }
+  .copy-ico:focus-visible { outline: 2px solid #7FB0B8; outline-offset: 2px; opacity: 1; }
+  .copy-ico svg { width: 14px; height: 14px; display: block; }
+  .copy-ico .ico-check { display: none; }
+  .copy-ico.copied { opacity: 1; color: #9ecdd4; border-color: #9ecdd4; }
+  .copy-ico.copied .ico-copy { display: none; }
+  .copy-ico.copied .ico-check { display: block; }
+
   /* Nav hamburger (mobile) */
   .nav-burger { display: none; flex-direction: column; justify-content: center; gap: 5px; width: 34px; height: 34px; cursor: pointer; }
   .nav-burger span { display: block; height: 2px; width: 22px; background: #20303A; transition: transform .3s, opacity .3s; }
@@ -683,6 +702,39 @@
     if (overlay && overlay.__current && overlay.__positionArrows) overlay.__positionArrows();
   }, { passive: true });
 
+  // Copiar contacto: click en el ícono copia el dato (el link del dato sigue
+  // abriendo WhatsApp/mail). Delegación en document para sobrevivir a los
+  // re-render del runtime (no se cachean referencias al DOM).
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest && e.target.closest('.copy-ico');
+    if (!btn) return;
+    e.preventDefault();
+    var text = btn.getAttribute('data-copy');
+    function done() {
+      btn.classList.add('copied');
+      var prevLabel = btn.getAttribute('aria-label');
+      btn.setAttribute('aria-label', btn.getAttribute('data-copied-label') || 'Copiado');
+      clearTimeout(btn.__t);
+      btn.__t = setTimeout(function () {
+        btn.classList.remove('copied');
+        btn.setAttribute('aria-label', prevLabel);
+      }, 1600);
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done).catch(fallback);
+    } else { fallback(); }
+    function fallback() {
+      var ta = document.createElement('textarea');
+      ta.value = text; ta.setAttribute('readonly', '');
+      ta.style.cssText = 'position:absolute;left:-9999px;';
+      document.body.appendChild(ta);
+      ta.select();
+      try { document.execCommand('copy'); } catch (err) {}
+      document.body.removeChild(ta);
+      done();
+    }
+  });
+
 </script>
 </helmet>
 
@@ -842,8 +894,8 @@
         <p style="color:rgba(236,231,221,.7);font-size:16px;line-height:1.65;max-width:440px;">Colaboro con estudios de arquitectura, interiorismo y mueblerías resolviendo el mobiliario de principio a fin: diseño, documentación y despiece listos para su producción.</p>
       </div>
       <div style="background:rgba(236,231,221,.06);border:1px solid rgba(236,231,221,.16);border-radius:16px;padding:6px 24px;">
-        <a href="https://wa.me/5492216147541?text=Hola%20Nahuel%2C%20vi%20tu%20landing%20y%20quiero%20hablar%20sobre%20un%20proyecto." target="_blank" rel="noopener" class="contact-row" style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:20px 0;border-bottom:1px solid rgba(236,231,221,.12);"><span style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#7FB0B8;">WhatsApp</span><span style="color:#ECE7DD;font-size:15px;">221 - 6147541</span></a>
-        <a href="mailto:nahuelvaldez.di@gmail.com" class="contact-row" style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:20px 0;border-bottom:1px solid rgba(236,231,221,.12);"><span style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#7FB0B8;">Email</span><span style="color:#ECE7DD;font-size:15px;overflow-wrap:anywhere;">nahuelvaldez.di@gmail.com</span></a>
+        <div class="contact-row" style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 0;border-bottom:1px solid rgba(236,231,221,.12);"><span style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#7FB0B8;">WhatsApp</span><span class="cr-actions"><a href="https://wa.me/5492216147541?text=Hola%20Nahuel%2C%20vi%20tu%20landing%20y%20quiero%20hablar%20sobre%20un%20proyecto." target="_blank" rel="noopener" class="cr-value">221 - 6147541</a><button type="button" class="copy-ico" data-copy="221 - 6147541" data-copied-label="¡Copiado!" aria-label="Copiar número de WhatsApp"><svg class="ico-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><svg class="ico-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button></span></div>
+        <div class="contact-row" style="display:flex;justify-content:space-between;align-items:center;gap:16px;padding:20px 0;border-bottom:1px solid rgba(236,231,221,.12);"><span style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#7FB0B8;">Email</span><span class="cr-actions"><a href="mailto:nahuelvaldez.di@gmail.com" class="cr-value">nahuelvaldez.di@gmail.com</a><button type="button" class="copy-ico" data-copy="nahuelvaldez.di@gmail.com" data-copied-label="¡Copiado!" aria-label="Copiar email"><svg class="ico-copy" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><svg class="ico-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></button></span></div>
         <div class="contact-row" style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:20px 0;"><span style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#7FB0B8;">Ubicación</span><span style="color:#ECE7DD;font-size:15px;">La Plata, Buenos Aires</span></div>
         <!-- LinkedIn: descomentar cuando el perfil esté activo
         <a href="https://www.linkedin.com/in/USUARIO" target="_blank" rel="noopener" style="display:flex;justify-content:space-between;align-items:baseline;gap:16px;padding:20px 0;border-top:1px solid rgba(236,231,221,.12);"><span style="font-family:'Space Mono',monospace;font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#7FB0B8;">LinkedIn</span><span style="color:#ECE7DD;font-size:15px;">/nahuelvaldez</span></a>

@@ -45,6 +45,15 @@
     .hero-rule   { animation: heroRiseUp .6s  cubic-bezier(.16,1,.3,1) .21s both; }
     .hero-lede   { animation: heroRiseUp .7s  cubic-bezier(.16,1,.3,1) .29s both !important; }
     .hero-actions{ animation: heroRiseUp .7s  cubic-bezier(.16,1,.3,1) 1s   both; }
+    /* La notebook entra con el bloque de texto (misma "primera unidad").
+       Antes usaba animation-timeline:view(), pensada para revelarse al
+       scrollear -- pero el hero ya está visible al cargar, así que el
+       navegador debía "resolver" el progreso del timeline de golpe en vez
+       de animar, generando un salto (más notorio ahora que el flotado es
+       más amplio). floatIso arranca después, cuando la entrada ya asentó,
+       para que no se pisen los dos movimientos. */
+    .hero-visual { animation: heroRiseUp .9s cubic-bezier(.16,1,.3,1) .15s both !important; }
+    .hero-laptop { animation: floatIso 8s ease-in-out 1.1s infinite !important; }
   }
 
   /* Project cards — carousel manejado por JS (autoplay mobile / hover desktop) */
@@ -60,7 +69,7 @@
   @keyframes ptrackLoop5 { 0%,19.412%{transform:translateX(-16.667%);} 20.147%,39.559%{transform:translateX(-33.333%);} 40.294%,59.706%{transform:translateX(-50%);} 60.441%,79.853%{transform:translateX(-66.667%);} 80.588%,100%{transform:translateX(-83.333%);} }
   @keyframes ptrack3 { 0%,18%{transform:translateX(0);} 26%,44%{transform:translateX(-33.333%);} 52%,100%{transform:translateX(-66.666%);} }
   @media (prefers-reduced-motion: reduce) { .pcard:hover .pt2, .pcard:hover .pt3 { animation: none; } }
-  @media (prefers-reduced-motion: reduce) { .hero-laptop, .hero-actions, .hero-title, .hero-eyebrow, .hero-lede, .hero-rule { animation: none !important; opacity: 1 !important; transform: none !important; } }
+  @media (prefers-reduced-motion: reduce) { .hero-laptop, .hero-visual, .hero-actions, .hero-title, .hero-eyebrow, .hero-lede, .hero-rule { animation: none !important; opacity: 1 !important; transform: none !important; } }
 
 
   /* Nav hamburger (mobile) */

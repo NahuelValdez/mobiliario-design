@@ -53,7 +53,11 @@
        más amplio). floatIso arranca después, cuando la entrada ya asentó,
        para que no se pisen los dos movimientos. */
     .hero-visual { animation: heroRiseUp .9s cubic-bezier(.16,1,.3,1) .15s both !important; }
-    .hero-laptop { animation: floatIso 8s ease-in-out 1.1s infinite !important; }
+    /* floatIso arranca ANTES de que heroRiseUp termine (se superponen ~0.5s):
+       mientras el padre todavía sube desacelerando, el hijo ya empieza su
+       propio ciclo hacia arriba, y como se combinan, el movimiento se lee
+       continuo en vez de "sube, frena del todo, y recién ahí flota". */
+    .hero-laptop { animation: floatIso 8s ease-in-out .55s infinite !important; }
   }
 
   /* Project cards — carousel manejado por JS (autoplay mobile / hover desktop) */
